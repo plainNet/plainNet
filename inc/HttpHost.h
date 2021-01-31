@@ -74,6 +74,8 @@ private:
 	std::vector<uint8_t> method_;
 	std::vector<uint8_t> host_;
 	std::vector<uint8_t> connection_;
+	std::vector<uint8_t> upgrade_;
+	std::vector<uint8_t> secWebsocketKey_;
 	HttpHost* source_ = nullptr;
 	int handleHttp(uint8_t* data, uint32_t dataCount);
 	int handleWebSocket(uint8_t* data, uint32_t dataCount);
@@ -83,6 +85,9 @@ private:
 	uint8_t* getResponseTypeArray(HttpHostResponseType type);
 	uint32_t getResponseTypeArraySize(HttpHostResponseType type);
 	int handleResponse(HttpHostEvent* response, HttpMethod requestType);
+	bool checkForWebsocketSwitch();
+	void intoVector(std::vector<uint8_t>& dst, uint8_t* source, uint32_t start, uint32_t count);
+	void acceptWs();
 
 public:
 	HttpHostConnection(int descriptor, HttpHost* source);
@@ -118,6 +123,9 @@ private:
 	static const uint8_t _CONTENT_TYPE_APPLICATION_JSON[];
 	static const uint8_t _CONTENT_TYPE_APPLICATION_OCTET_STREAM[];
 	static const uint8_t _CONTENT_LENGTH[];
+	static const char* WS_GUID;
+	static const uint8_t WS_ACCEPT[];
+	uint8_t wsHandshake_[128];
 
 protected:
 	virtual void tcpHost__clientConnected(int socket) override;

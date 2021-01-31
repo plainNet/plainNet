@@ -180,6 +180,28 @@ const uint8_t HttpHost::_CONTENT_LENGTH[] = {
 };
 
 /**
+ * WEB SOCKET GUID
+ */
+const char* HttpHost::WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+/**
+ * HTTP/1.1 101 Switching Protocols
+ * Upgrade: websocket
+ * Connection: Upgrade
+ * Sec-WebSocket-Accept:
+ */
+const uint8_t HttpHost::WS_ACCEPT[] = {
+	0x48, 0x54, 0x54, 0x50, 0x2F, 0x31, 0x2E, 0x31, 0x20, 0x31,
+	0x30, 0x31, 0x20, 0x53, 0x77, 0x69, 0x74, 0x63, 0x68, 0x69,
+	0x6E, 0x67, 0x20, 0x50, 0x72, 0x6F, 0x74, 0x6F, 0x63, 0x6F,
+	0x6C, 0x73, 0x0D, 0x0A, 0x55, 0x70, 0x67, 0x72, 0x61, 0x64,
+	0x65, 0x3A, 0x20, 0x77, 0x65, 0x62, 0x73, 0x6F, 0x63, 0x6B,
+	0x65, 0x74, 0x0D, 0x0A, 0x43, 0x6F, 0x6E, 0x6E, 0x65, 0x63,
+	0x74, 0x69, 0x6F, 0x6E, 0x3A, 0x20, 0x55, 0x70, 0x67, 0x72,
+	0x61, 0x64, 0x65, 0x0D, 0x0A, 0x53, 0x65, 0x63, 0x2D, 0x57,
+	0x65, 0x62, 0x53, 0x6F, 0x63, 0x6B, 0x65, 0x74, 0x2D, 0x41,
+	0x63, 0x63, 0x65, 0x70, 0x74, 0x3A, 0x20,
+};
+/**
  * -------------------------------------------------------------------------------------------------------------------------
  * -------------------------------------------------------------------------------------------------------------------------
  * -------------------------------------------------------------------------------------------------------------------------
@@ -254,6 +276,8 @@ HttpHostConnection::~HttpHostConnection() {
 	this->connection_.clear();
 	this->uri_.clear();
 	this->version_.clear();
+	this->upgrade_.clear();
+	this->secWebsocketKey_.clear();
 }
 
 int HttpHostConnection::getDescriptor() {
@@ -285,12 +309,20 @@ void HttpHostConnection::resetInputBuffers() {
 	this->headerBr_ = 0;
 }
 
+void HttpHostConnection::intoVector(std::vector<uint8_t>& dst, uint8_t* source, uint32_t start, uint32_t count) {
+	for(uint32_t i = start; i < count; i++) {
+		dst.push_back(source[i]);
+	}
+}
+
 HttpMethod HttpHostConnection::parseHttpHeaders() {
 	uint32_t offset = 0;
 	this->tmp_.clear();
 	this->method_.clear();
 	this->host_.clear();
 	this->connection_.clear();
+	this->upgrade_.clear();
+	this->secWebsocketKey_.clear();
 	HttpMethod methodType = HttpMethod::_UNSUPPORTED_;
 	while(offset < this->headerBw_) {
 		if(this->headerBuf_[offset] != 13 && this->headerBuf_[offset] != 10) {
@@ -310,21 +342,14 @@ HttpMethod HttpHostConnection::parseHttpHeaders() {
 						offset = this->headerBw_;
 					}
 				} else {
-					if(tmpArrSize >= 6 && !this->host_.size() && tmpArr[5] == 0x20 && tmpArr[0] == 'H' && tmpArr[1] == 'o' && tmpArr[2] == 's' && tmpArr[3] == 't' && tmpArr[4] == ':' ) {
+					if(tmpArrSize >= 6 && !this->host_.size() && memcmp(tmpArr, "Host: ", 6) == 0) {
 						this->host_.insert(this->host_.begin(), this->tmp_.begin() + 6, this->tmp_.end());
-					} else if(tmpArrSize >= 12 && !this->connection_.size() && tmpArr[11] == 0x20
-						&& tmpArr[0] == 'C'
-						&& tmpArr[1] == 'o'
-						&& tmpArr[2] == 'n'
-						&& tmpArr[3] == 'n'
-						&& tmpArr[4] == 'e'
-						&& tmpArr[5] == 'c'
-						&& tmpArr[6] == 't'
-						&& tmpArr[7] == 'i'
-						&& tmpArr[8] == 'o'
-						&& tmpArr[9] == 'n'
-						&& tmpArr[10] == ':') {
+					} else if(tmpArrSize >= 12 && !this->connection_.size()  && memcmp(tmpArr, "Connection: ", 12) == 0) {
 						this->connection_.insert(this->connection_.begin(), this->tmp_.begin() + 12, this->tmp_.end());
+					} else if(tmpArrSize >= 9 && !this->upgrade_.size()  && memcmp(tmpArr, "Upgrade: ", 9) == 0) {
+						this->upgrade_.insert(this->upgrade_.begin(), this->tmp_.begin() + 9, this->tmp_.end());
+					} else if(tmpArrSize >= 19 && !this->secWebsocketKey_.size()  && memcmp(tmpArr, "Sec-WebSocket-Key: : ", 19) == 0) {
+						this->secWebsocketKey_.insert(this->secWebsocketKey_.begin(), this->tmp_.begin() + 19, this->tmp_.end());
 					}
 				}
 			}
@@ -409,6 +434,21 @@ int HttpHostConnection::handleResponse(HttpHostEvent* response, HttpMethod reque
 	return HTTP_HOST_CLOSE_CONNECTION;
 }
 
+bool HttpHostConnection::checkForWebsocketSwitch() {
+	uint32_t cs_ = this->connection_.size();
+	uint32_t us_ = this->upgrade_.size();
+	if(cs_ == 7 && us_ == 9 && this->secWebsocketKey_.size()
+			&& memcmp(this->connection_.data(), "Upgrade", cs_) == 0
+			&& memcmp(this->upgrade_.data(), "websocket", us_) == 0) {
+		return true;
+	}
+	return false;
+}
+
+void HttpHostConnection::acceptWs() {
+
+}
+
 int HttpHostConnection::handleHttp(uint8_t* data, uint32_t dataCount) {
 	if(headerIsWaiting_) {
 		//move input data bytes into internal buffer for header bytes
@@ -445,6 +485,13 @@ int HttpHostConnection::handleHttp(uint8_t* data, uint32_t dataCount) {
 		if(version_.find("HTTP/1.0") == std::string::npos && version_.find("HTTP/1.1") == std::string::npos) {
 			//unsupported HTTP version
 			return HTTP_HOST_CLOSE_CONNECTION;
+		}
+		//check for web socket connection switch request
+		if(methodType == HttpMethod::_GET_) {
+			if(this->checkForWebsocketSwitch()) {
+				Platform::getInstance()->ledY2_toggle();
+				return HTTP_HOST_CLOSE_CONNECTION;
+			}
 		}
 		//create response
 		HttpHostEvent response;
