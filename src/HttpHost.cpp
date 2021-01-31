@@ -7,6 +7,8 @@
 
 #include <HttpHost.h>
 #include <Platform.h>
+#include <mbedtls/base64.h>
+#include <mbedtls/sha1.h>
 #include <string.h>
 #include <string>
 #include <stdlib.h>
@@ -446,7 +448,17 @@ bool HttpHostConnection::checkForWebsocketSwitch() {
 }
 
 void HttpHostConnection::acceptWs() {
-
+	size_t olen;
+	memcpy((void*) this->source_->wsHandshake_, (void*) this->secWebsocketKey_.data(), this->secWebsocketKey_.size());
+	memcpy((void*) &this->source_->wsHandshake_[this->secWebsocketKey_.size()], (void*) HttpHost::WS_GUID, strlen(HttpHost::WS_GUID));
+	mbedtls_sha1(this->source_->wsHandshake_, this->secWebsocketKey_.size() + strlen(HttpHost::WS_GUID), this->source_->wsHandshakeSHA1_);
+	mbedtls_base64_encode(this->source_->wsHandshakeBase64_, 100, &olen, this->source_->wsHandshakeSHA1_, 20);
+	this->source_->wsHandshakeBase64_[olen++] = 13;
+	this->source_->wsHandshakeBase64_[olen++] = 10;
+	this->source_->wsHandshakeBase64_[olen++] = 13;
+	this->source_->wsHandshakeBase64_[olen++] = 10;
+	this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::WS_ACCEPT, sizeof(HttpHost::WS_ACCEPT));
+	this->source_->transmit(this->descriptor_, (uint8_t*) this->source_->wsHandshakeBase64_, olen);
 }
 
 int HttpHostConnection::handleHttp(uint8_t* data, uint32_t dataCount) {
@@ -489,8 +501,9 @@ int HttpHostConnection::handleHttp(uint8_t* data, uint32_t dataCount) {
 		//check for web socket connection switch request
 		if(methodType == HttpMethod::_GET_) {
 			if(this->checkForWebsocketSwitch()) {
+				this->acceptWs();
 				Platform::getInstance()->ledY2_toggle();
-				return HTTP_HOST_CLOSE_CONNECTION;
+				return HTTP_HOST_CONTINUE;
 			}
 		}
 		//create response

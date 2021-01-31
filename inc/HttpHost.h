@@ -125,7 +125,9 @@ private:
 	static const uint8_t _CONTENT_LENGTH[];
 	static const char* WS_GUID;
 	static const uint8_t WS_ACCEPT[];
-	uint8_t wsHandshake_[128];
+	uint8_t wsHandshake_[64];
+	uint8_t wsHandshakeSHA1_[20];
+	uint8_t wsHandshakeBase64_[32];
 
 protected:
 	virtual void tcpHost__clientConnected(int socket) override;
