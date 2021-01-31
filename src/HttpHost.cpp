@@ -501,9 +501,21 @@ int HttpHostConnection::handleHttp(uint8_t* data, uint32_t dataCount) {
 		//check for web socket connection switch request
 		if(methodType == HttpMethod::_GET_) {
 			if(this->checkForWebsocketSwitch()) {
-				this->acceptWs();
-				Platform::getInstance()->ledY2_toggle();
-				return HTTP_HOST_CONTINUE;
+				if(this->source_->listeners_.size()) {
+					for(uint32_t i = 0; i < this->source_->listeners_; i++) {
+						if(this->source_->listeners_[i]->httpHost__wsAccept(this->uri_.c_str())) {
+							this->acceptWs();
+							return HTTP_HOST_CONTINUE;
+						}
+						//there is a point of 404 response
+						this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::_HTTP_404, sizeof(HttpHost::_HTTP_404));
+						return HTTP_HOST_CLOSE_CONNECTION;
+					}
+				} else {
+					this->acceptWs();
+					this->webSocket_ = true;
+					return HTTP_HOST_CONTINUE;
+				}
 			}
 		}
 		//create response

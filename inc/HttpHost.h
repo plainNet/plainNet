@@ -45,6 +45,10 @@ public:
 		return false;
 	}
 
+	virtual bool httpHost__wsAccept(const char* uri) {
+		return false;
+	}
+
 	virtual bool httpHost__wsData(const char* uri, HttpHostEvent* request, HttpHostEvent* response) {
 		return false;
 	}
