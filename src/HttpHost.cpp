@@ -1,0 +1,482 @@
+/*
+ * HttpHost.cpp
+ *
+ *  Created on: 28 џэт. 2021 у.
+ *      Author: kgn
+ */
+
+#include <HttpHost.h>
+#include <Platform.h>
+#include <string.h>
+#include <string>
+#include <stdlib.h>
+
+namespace kvpr {
+namespace network {
+
+#define HTTP_HOST_CLOSE_CONNECTION								0
+#define HTTP_HOST_CONTINUE										1
+
+/**
+ * -------------------------------------------------------------------------------------------------------------------------
+ * -------------------------------------------------------------------------------------------------------------------------
+ * -------------------------------------------------------------------------------------------------------------------------
+ */
+
+/**
+ * HTTP/1.1 501 NOT IMPLEMENTED
+ * Server: lwIP/plainNetHttpServer
+ *
+ */
+const uint8_t HttpHost::_HTTP_NOT_IMPLEMENTED_HEADER[] = {
+	0x48, 0x54, 0x54, 0x50, 0x2F, 0x31, 0x2E, 0x31, 0x20, 0x35,
+	0x30, 0x31, 0x20, 0x4E, 0x4F, 0x54, 0x20, 0x49, 0x4D, 0x50,
+	0x4C, 0x45, 0x4D, 0x45, 0x4E, 0x54, 0x45, 0x44, 0x0D, 0x0A,
+	0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x3A, 0x20, 0x6C, 0x77,
+	0x49, 0x50, 0x2F, 0x70, 0x6C, 0x61, 0x69, 0x6E, 0x4E, 0x65,
+	0x74, 0x48, 0x74, 0x74, 0x70, 0x53, 0x65, 0x72, 0x76, 0x65,
+	0x72, 0x0D, 0x0A, 0x0D, 0x0A
+};
+
+/**
+ * HTTP/1.1 200 OK
+ * Server: lwIP/plainNetHttpServer
+ * Cache-Control: no-cache
+ */
+const uint8_t HttpHost::_HTTP_OK[] = {
+	0x48, 0x54, 0x54, 0x50, 0x2F, 0x31, 0x2E, 0x31, 0x20, 0x32,
+	0x30, 0x30, 0x20, 0x4F, 0x4B, 0x0D, 0x0A, 0x53, 0x65, 0x72,
+	0x76, 0x65, 0x72, 0x3A, 0x20, 0x6C, 0x77, 0x49, 0x50, 0x2F,
+	0x70, 0x6C, 0x61, 0x69, 0x6E, 0x4E, 0x65, 0x74, 0x48, 0x74,
+	0x74, 0x70, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x0D, 0x0A,
+	0x43, 0x61, 0x63, 0x68, 0x65, 0x2D, 0x43, 0x6F, 0x6E, 0x74,
+	0x72, 0x6F, 0x6C, 0x3A, 0x20, 0x6E, 0x6F, 0x2D, 0x63, 0x61,
+	0x63, 0x68, 0x65, 0x0D, 0x0A
+};
+
+/**
+ * HTTP/1.1 404 NOT FOUND
+ * Server: lwIP/plainNetHttpServer
+ *
+ */
+const uint8_t HttpHost::_HTTP_404[] = {
+	0x48, 0x54, 0x54, 0x50, 0x2F, 0x31, 0x2E, 0x31, 0x20, 0x34,
+	0x30, 0x34, 0x20, 0x4E, 0x4F, 0x54, 0x20, 0x46, 0x4F, 0x55,
+	0x4E, 0x44, 0x0D, 0x0A, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72,
+	0x3A, 0x20, 0x6C, 0x77, 0x49, 0x50, 0x2F, 0x70, 0x6C, 0x61,
+	0x69, 0x6E, 0x4E, 0x65, 0x74, 0x48, 0x74, 0x74, 0x70, 0x53,
+	0x65, 0x72, 0x76, 0x65, 0x72, 0x0D, 0x0A, 0x0D, 0x0A
+};
+
+/**
+ * Content-Type: ........
+ */
+#define CONTENT_TYPE_OFFSET 14
+const uint8_t HttpHost::_CONTENT_TYPE[] = {
+	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
+	0x70, 0x65, 0x3A, 0x20
+};
+
+/**
+ * Content-Type: text/html
+ */
+const uint8_t HttpHost::_CONTENT_TYPE_TEXT_HTML[] = {
+	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
+	0x70, 0x65, 0x3A, 0x20, 0x74, 0x65, 0x78, 0x74, 0x2F, 0x68,
+	0x74, 0x6D, 0x6C, 0x0D, 0x0A
+};
+
+/**
+ * Content-Type: text/css
+ */
+const uint8_t HttpHost::_CONTENT_TYPE_TEXT_CSS[] = {
+	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
+	0x70, 0x65, 0x3A, 0x20, 0x74, 0x65, 0x78, 0x74, 0x2F, 0x63,
+	0x73, 0x73, 0x0D, 0x0A
+};
+
+/**
+ * Content-Type: text/javascript
+ */
+const uint8_t HttpHost::_CONTENT_TYPE_TEXT_JAVASCRIPT[] = {
+	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
+	0x70, 0x65, 0x3A, 0x20, 0x74, 0x65, 0x78, 0x74, 0x2F, 0x6A,
+	0x61, 0x76, 0x61, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x0D,
+	0x0A
+};
+
+/**
+ * Content-Type: image/png
+ */
+const uint8_t HttpHost::_CONTENT_TYPE_IMAGE_PNG[] = {
+	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
+	0x70, 0x65, 0x3A, 0x20, 0x69, 0x6D, 0x61, 0x67, 0x65, 0x2F,
+	0x70, 0x6E, 0x67, 0x0D, 0x0A
+};
+
+/**
+ * Content-Type: image/jpeg
+ */
+const uint8_t HttpHost::_CONTENT_TYPE_IMAGE_JPEG[] = {
+	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
+	0x70, 0x65, 0x3A, 0x20, 0x69, 0x6D, 0x61, 0x67, 0x65, 0x2F,
+	0x6A, 0x70, 0x65, 0x67, 0x0D, 0x0A
+};
+
+/**
+ * Content-Type: image/svg+xml
+ */
+const uint8_t HttpHost::_CONTENT_TYPE_IMAGE_SVG[] = {
+	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
+	0x70, 0x65, 0x3A, 0x20, 0x69, 0x6D, 0x61, 0x67, 0x65, 0x2F,
+	0x73, 0x76, 0x67, 0x2B, 0x78, 0x6D, 0x6C, 0x0D, 0x0A,
+};
+
+/**
+ * Content-Type: image/tiff
+ */
+const uint8_t HttpHost::_CONTENT_TYPE_IMAGE_TIFF[] = {
+	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
+	0x70, 0x65, 0x3A, 0x20, 0x69, 0x6D, 0x61, 0x67, 0x65, 0x2F,
+	0x74, 0x69, 0x66, 0x66, 0x0D, 0x0A,
+};
+
+/**
+ * Content-Type: image/x-icon
+ */
+const uint8_t HttpHost::_CONTENT_TYPE_IMAGE_XICON[] = {
+	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
+	0x70, 0x65, 0x3A, 0x20, 0x69, 0x6D, 0x61, 0x67, 0x65, 0x2F,
+	0x78, 0x2D, 0x69, 0x63, 0x6F, 0x6E, 0x0D, 0x0A,
+};
+
+/**
+ * Content-Type: application/json
+ */
+const uint8_t HttpHost::_CONTENT_TYPE_APPLICATION_JSON[] = {
+	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
+	0x70, 0x65, 0x3A, 0x20, 0x61, 0x70, 0x70, 0x6C, 0x69, 0x63,
+	0x61, 0x74, 0x69, 0x6F, 0x6E, 0x2F, 0x6A, 0x73, 0x6F, 0x6E,
+	0x0D, 0x0A,
+};
+
+/**
+ * Content-Type: application/octet-stream
+ */
+const uint8_t HttpHost::_CONTENT_TYPE_APPLICATION_OCTET_STREAM[] = {
+	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
+	0x70, 0x65, 0x3A, 0x20, 0x61, 0x70, 0x70, 0x6C, 0x69, 0x63,
+	0x61, 0x74, 0x69, 0x6F, 0x6E, 0x2F, 0x6F, 0x63, 0x74, 0x65,
+	0x74, 0x2D, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6D, 0x0D, 0x0A,
+};
+
+/**
+ * Content-Length:
+ */
+#define CONTENT_LENGTH_OFFSET 16
+const uint8_t HttpHost::_CONTENT_LENGTH[] = {
+	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x4C, 0x65,
+	0x6E, 0x67, 0x74, 0x68, 0x3A, 0x20
+};
+
+/**
+ * -------------------------------------------------------------------------------------------------------------------------
+ * -------------------------------------------------------------------------------------------------------------------------
+ * -------------------------------------------------------------------------------------------------------------------------
+ */
+HttpHost::HttpHost() : HttpHost(80) {
+}
+
+
+HttpHost::HttpHost(uint16_t port) : TcpHost(port), TcpHostListener() {
+	setChild((TcpHostListener*) this);
+}
+
+HttpHost::~HttpHost() {
+	// TODO Auto-generated destructor stub
+}
+
+void HttpHost::tcpHost__clientConnected(int socket) {
+	this->httpConnections_.push_back(new HttpHostConnection(socket, this));
+}
+
+void HttpHost::tcpHost__clientDisconnected(int socket) {
+	for(uint32_t i = 0; i < this->httpConnections_.size(); i++) {
+		if(this->httpConnections_[i]->getDescriptor() == socket) {
+			delete this->httpConnections_[i];
+			this->httpConnections_.erase(this->httpConnections_.begin() + i);
+			break;
+		}
+	}
+}
+
+void HttpHost::tcpHost__clientDataReceived(int socket, uint8_t* data, uint32_t dataCount) {
+	for(uint32_t i = 0; i < this->httpConnections_.size(); i++) {
+		if(this->httpConnections_[i]->getDescriptor() == socket) {
+			if(this->httpConnections_[i]->handle(data, dataCount) == HTTP_HOST_CLOSE_CONNECTION) {
+				delete this->httpConnections_[i];
+				this->httpConnections_.erase(this->httpConnections_.begin() + i);
+				this->finish(socket);
+			}
+			break;
+		}
+	}
+}
+
+
+void HttpHost::addListener(HttpHostListener* listener) {
+	this->listeners_.push_back(listener);
+}
+
+/**
+ * -------------------------------------------------------------------------------------------------------------------------
+ * -------------------------------------------------------------------------------------------------------------------------
+ * -------------------------------------------------------------------------------------------------------------------------
+ */
+HttpHostConnection::HttpHostConnection(int descriptor, HttpHost* source) {
+	this->descriptor_ = descriptor;
+	this->source_ = source;
+	this->headerBuf_ = (uint8_t*) malloc(HTTP_HOST_MAX_INPUT_HTTP_HEADER_SIZE);
+}
+
+HttpHostConnection::~HttpHostConnection() {
+	if(this->headerBuf_) {
+		free(this->headerBuf_);
+		this->headerBuf_ = nullptr;
+	}
+	if(this->contentBuf_) {
+		free(this->contentBuf_);
+		this->contentBuf_ = nullptr;
+	}
+	this->tmp_.clear();
+	this->method_.clear();
+	this->host_.clear();
+	this->connection_.clear();
+	this->uri_.clear();
+	this->version_.clear();
+}
+
+int HttpHostConnection::getDescriptor() {
+	return descriptor_;
+}
+
+bool HttpHostConnection::isWebSocket() {
+	return webSocket_;
+}
+
+void HttpHostConnection::setWebSocket(bool webSocket) {
+	webSocket_ = webSocket;
+	if(webSocket_) {
+
+	}
+}
+
+int HttpHostConnection::handle(uint8_t* data, uint32_t dataCount) {
+	if(webSocket_) {
+		return this->handleWebSocket(data, dataCount);
+	} else {
+		return this->handleHttp(data, dataCount);
+	}
+}
+
+void HttpHostConnection::resetInputBuffers() {
+	this->contentSeparator_ = 0;
+	this->headerBw_ = 0;
+	this->headerBr_ = 0;
+}
+
+HttpMethod HttpHostConnection::parseHttpHeaders() {
+	uint32_t offset = 0;
+	this->tmp_.clear();
+	this->method_.clear();
+	this->host_.clear();
+	this->connection_.clear();
+	HttpMethod methodType = HttpMethod::_UNSUPPORTED_;
+	while(offset < this->headerBw_) {
+		if(this->headerBuf_[offset] != 13 && this->headerBuf_[offset] != 10) {
+			this->tmp_.push_back(this->headerBuf_[offset]);
+		} else {
+			uint32_t tmpArrSize = this->tmp_.size();
+			if(tmpArrSize) {
+				uint8_t* tmpArr = this->tmp_.data();
+				if(!this->method_.size()) {
+					if(tmpArrSize >= 4  && tmpArr[3] == 0x20 && tmpArr[0] == 'G' && tmpArr[1] == 'E' && tmpArr[2] == 'T') {
+						this->method_.insert(this->method_.begin(), this->tmp_.begin() + 4, this->tmp_.end());
+						methodType = HttpMethod::_GET_;
+					} else if(tmpArrSize >= 5  && tmpArr[4] == 0x20 && tmpArr[0] == 'H' && tmpArr[1] == 'E' && tmpArr[2] == 'A' && tmpArr[3] == 'D') {
+						this->method_.insert(this->method_.begin(), this->tmp_.begin() + 5, this->tmp_.end());
+						methodType = HttpMethod::_HEAD_;
+					} else {
+						offset = this->headerBw_;
+					}
+				} else {
+					if(tmpArrSize >= 6 && !this->host_.size() && tmpArr[5] == 0x20 && tmpArr[0] == 'H' && tmpArr[1] == 'o' && tmpArr[2] == 's' && tmpArr[3] == 't' && tmpArr[4] == ':' ) {
+						this->host_.insert(this->host_.begin(), this->tmp_.begin() + 6, this->tmp_.end());
+					} else if(tmpArrSize >= 12 && !this->connection_.size() && tmpArr[11] == 0x20
+						&& tmpArr[0] == 'C'
+						&& tmpArr[1] == 'o'
+						&& tmpArr[2] == 'n'
+						&& tmpArr[3] == 'n'
+						&& tmpArr[4] == 'e'
+						&& tmpArr[5] == 'c'
+						&& tmpArr[6] == 't'
+						&& tmpArr[7] == 'i'
+						&& tmpArr[8] == 'o'
+						&& tmpArr[9] == 'n'
+						&& tmpArr[10] == ':') {
+						this->connection_.insert(this->connection_.begin(), this->tmp_.begin() + 12, this->tmp_.end());
+					}
+				}
+			}
+			this->tmp_.clear();
+		}
+		offset++;
+	}
+	return methodType;
+}
+
+void HttpHostConnection::parseUriAndVersion() {
+	uri_.clear();
+	version_.clear();
+	uint32_t offset = 0;
+	bool ver = false;
+	while(offset < method_.size()) {
+		if(method_[offset] == 0x20) {
+			ver = true;
+		} else {
+			(ver ? version_ : uri_) += (char) method_[offset];
+		}
+		offset++;
+	}
+	if(uri_.find("?") != std::string::npos) {
+		uri_ = uri_.substr(0, uri_.find("?"));
+	}
+}
+
+uint8_t* HttpHostConnection::getResponseTypeArray(HttpHostResponseType type) {
+	switch(type) {
+		case HttpHostResponseType::_html_: return (uint8_t*) HttpHost::_CONTENT_TYPE_TEXT_HTML;
+		case HttpHostResponseType::_css_: return (uint8_t*) HttpHost::_CONTENT_TYPE_TEXT_CSS;
+		case HttpHostResponseType::_javascript_: return (uint8_t*) HttpHost::_CONTENT_TYPE_TEXT_JAVASCRIPT;
+		case HttpHostResponseType::_img_png_: return (uint8_t*) HttpHost::_CONTENT_TYPE_IMAGE_PNG;
+		case HttpHostResponseType::_img_jpeg_:return (uint8_t*) HttpHost::_CONTENT_TYPE_IMAGE_JPEG;
+		case HttpHostResponseType::_img_svg_: return (uint8_t*) HttpHost::_CONTENT_TYPE_IMAGE_SVG;
+		case HttpHostResponseType::_img_tiff_: return (uint8_t*) HttpHost::_CONTENT_TYPE_IMAGE_TIFF;
+		case HttpHostResponseType::_img_xicon_: return (uint8_t*) HttpHost::_CONTENT_TYPE_IMAGE_XICON;
+		case HttpHostResponseType::_json_: return (uint8_t*) HttpHost::_CONTENT_TYPE_APPLICATION_JSON;
+		default: return (uint8_t*) HttpHost::_CONTENT_TYPE_APPLICATION_OCTET_STREAM;
+	}
+}
+
+uint32_t HttpHostConnection::getResponseTypeArraySize(HttpHostResponseType type) {
+	switch(type) {
+		case HttpHostResponseType::_html_: return sizeof(HttpHost::_CONTENT_TYPE_TEXT_HTML);
+		case HttpHostResponseType::_css_: return sizeof(HttpHost::_CONTENT_TYPE_TEXT_CSS);
+		case HttpHostResponseType::_javascript_: return sizeof(HttpHost::_CONTENT_TYPE_TEXT_JAVASCRIPT);
+		case HttpHostResponseType::_img_png_: return sizeof(HttpHost::_CONTENT_TYPE_IMAGE_PNG);
+		case HttpHostResponseType::_img_jpeg_: return sizeof(HttpHost::_CONTENT_TYPE_IMAGE_JPEG);
+		case HttpHostResponseType::_img_svg_: return sizeof(HttpHost::_CONTENT_TYPE_IMAGE_SVG);
+		case HttpHostResponseType::_img_tiff_: return sizeof(HttpHost::_CONTENT_TYPE_IMAGE_TIFF);
+		case HttpHostResponseType::_img_xicon_: return sizeof(HttpHost::_CONTENT_TYPE_IMAGE_XICON);
+		case HttpHostResponseType::_json_: return sizeof(HttpHost::_CONTENT_TYPE_APPLICATION_JSON);
+		default: return sizeof(HttpHost::_CONTENT_TYPE_APPLICATION_OCTET_STREAM);
+	}
+}
+
+int HttpHostConnection::handleResponse(HttpHostEvent* response, HttpMethod requestType) {
+	//get response type array
+	uint8_t* responseTypeArray = this->getResponseTypeArray(response->type);
+	uint32_t responseTypeArraySize = this->getResponseTypeArraySize(response->type);
+	//if threre is no type array for resource - continue
+	if(responseTypeArray == nullptr) {
+		return HTTP_HOST_CONTINUE;
+	}
+	//send header first segment
+	this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::_HTTP_OK, sizeof(HttpHost::_HTTP_OK));
+	//send Response-Type
+	this->source_->transmit(this->descriptor_, responseTypeArray, responseTypeArraySize);
+	//create and send Content-Length
+	std::string cl("Content-Length: ");
+	char toStr_[10];
+	itoa(response->contentSize, toStr_, 10);
+	cl += (char*) toStr_;
+	cl += "\r\n\r\n";
+	this->source_->transmit(this->descriptor_, (uint8_t*) cl.c_str(), cl.size());
+	//send response content if GET method in request
+	if(requestType == HttpMethod::_GET_) {
+		this->source_->transmit(this->descriptor_, response->content, response->contentSize);
+	}
+	return HTTP_HOST_CLOSE_CONNECTION;
+}
+
+int HttpHostConnection::handleHttp(uint8_t* data, uint32_t dataCount) {
+	if(headerIsWaiting_) {
+		//move input data bytes into internal buffer for header bytes
+		for(uint32_t i = 0; i < dataCount; i++) {
+			this->contentSeparator_ <<= 8;
+			this->contentSeparator_ |= data[i];
+			this->headerBuf_[this->headerBw_++] = data[i];
+			//check if maximum header size is reached or \r\n\r\n delimeter is founded
+			if(this->headerBw_ == HTTP_HOST_MAX_INPUT_HTTP_HEADER_SIZE || this->contentSeparator_ == HTTP_HOST_CONTENT_SEPARATOR) {
+				break;
+			}
+		}
+		//if delimeter not found
+		if(this->contentSeparator_ != HTTP_HOST_CONTENT_SEPARATOR) {
+			//this is an error - maximum header size is reached and delimeter not founded
+			if(this->headerBw_ == HTTP_HOST_MAX_INPUT_HTTP_HEADER_SIZE) {
+				this->resetInputBuffers();
+				return HTTP_HOST_CLOSE_CONNECTION;
+			}
+			return HTTP_HOST_CONTINUE;
+		}
+		//call parse HTTP headers method
+		HttpMethod methodType = this->parseHttpHeaders();
+		//clear header buf
+		this->resetInputBuffers();
+		//in case of unsupported METHOD send HTTP/1.1 501 NOT IMPLEMENTED
+		if(methodType == HttpMethod::_UNSUPPORTED_) {
+			this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::_HTTP_NOT_IMPLEMENTED_HEADER, sizeof(HttpHost::_HTTP_NOT_IMPLEMENTED_HEADER));
+			return HTTP_HOST_CLOSE_CONNECTION;
+		}
+		//parse URI and HTTP version from header
+		this->parseUriAndVersion();
+		//check for HTTP version
+		if(version_.find("HTTP/1.0") == std::string::npos && version_.find("HTTP/1.1") == std::string::npos) {
+			//unsupported HTTP version
+			return HTTP_HOST_CLOSE_CONNECTION;
+		}
+		//create response
+		HttpHostEvent response;
+#if PLAINNET_USE_DEFAULT_HTTP_RESOURCES == 1
+		//default resources use is set - check request in default resources
+		if(this->source_ && this->source_->defaultResources_ && this->source_->defaultResources_->get(uri_, &response)) {
+			if(this->handleResponse(&response, methodType) == HTTP_HOST_CLOSE_CONNECTION) {
+				return HTTP_HOST_CLOSE_CONNECTION;
+			}
+		}
+#endif
+		//default resources unit is not used or there is no default resource for this URI - make callback on user level
+		if(this->source_) {
+			for(uint32_t i = 0; i < this->source_->listeners_.size(); i++) {
+				if(this->source_->listeners_[i]->httpHost__get(uri_.c_str(), &response)) {
+					if(this->handleResponse(&response, methodType) == HTTP_HOST_CLOSE_CONNECTION) {
+						return HTTP_HOST_CLOSE_CONNECTION;
+					}
+				}
+			}
+		}
+		//there is a point of 404 response
+		this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::_HTTP_404, sizeof(HttpHost::_HTTP_404));
+		return HTTP_HOST_CLOSE_CONNECTION;
+	}
+	return HTTP_HOST_CONTINUE;
+}
+
+int HttpHostConnection::handleWebSocket(uint8_t* data, uint32_t dataCount) {
+	return 0;
+}
+
+} /* namespace network */
+} /* namespace kvpr */
+
