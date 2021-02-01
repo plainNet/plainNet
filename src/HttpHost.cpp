@@ -257,7 +257,7 @@ void HttpHost::addListener(HttpHostListener* listener) {
  * -------------------------------------------------------------------------------------------------------------------------
  * -------------------------------------------------------------------------------------------------------------------------
  */
-HttpHostConnection::HttpHostConnection(int descriptor, HttpHost* source) {
+HttpHostConnection::HttpHostConnection(int descriptor, HttpHost* source) : WsEndPoint() {
 	this->descriptor_ = descriptor;
 	this->source_ = source;
 	this->headerBuf_ = (uint8_t*) malloc(HTTP_HOST_MAX_INPUT_HTTP_HEADER_SIZE);
@@ -280,6 +280,8 @@ HttpHostConnection::~HttpHostConnection() {
 	this->version_.clear();
 	this->upgrade_.clear();
 	this->secWebsocketKey_.clear();
+	this->webSocketFrame_.clear();
+	this->webSocketPayload_.clear();
 }
 
 int HttpHostConnection::getDescriptor() {
@@ -502,12 +504,11 @@ int HttpHostConnection::handleHttp(uint8_t* data, uint32_t dataCount) {
 		if(methodType == HttpMethod::_GET_) {
 			if(this->checkForWebsocketSwitch()) {
 				if(this->source_->listeners_.size()) {
-					for(uint32_t i = 0; i < this->source_->listeners_; i++) {
-						if(this->source_->listeners_[i]->httpHost__wsAccept(this->uri_.c_str())) {
+					for(uint32_t i = 0; i < this->source_->listeners_.size(); i++) {
+						if(this->source_->listeners_[i]->httpHost__wsAccept((WsEndPoint*) this)) {
 							this->acceptWs();
 							return HTTP_HOST_CONTINUE;
 						}
-						//there is a point of 404 response
 						this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::_HTTP_404, sizeof(HttpHost::_HTTP_404));
 						return HTTP_HOST_CLOSE_CONNECTION;
 					}
@@ -545,9 +546,117 @@ int HttpHostConnection::handleHttp(uint8_t* data, uint32_t dataCount) {
 	return HTTP_HOST_CONTINUE;
 }
 
-int HttpHostConnection::handleWebSocket(uint8_t* data, uint32_t dataCount) {
-	return 0;
+bool HttpHostConnection::parseWsFrameHeader(WsFrameHeader* header, uint8_t* data, uint32_t dataCount) {
+	memset((void*) header, 0, sizeof(WsFrameHeader));
+	uint32_t offset = 0;
+	header->FIN = (data[offset] & 128) != 0;
+	header->RSV1 = (data[offset] & 64) != 0;
+	header->RSV2 = (data[offset] & 32) != 0;
+	header->RSV3 = (data[offset] & 16) != 0;
+	header->opcode = (data[offset++] & 15);
+	if(offset >= dataCount) {
+		return false;
+	}
+	header->MASK = (data[offset] & 128) != 0;
+	header->payloadLength = (data[offset++] & 127);
+	if(offset >= dataCount) {
+		return false;
+	}
+	if(header->payloadLength == 126 || header->payloadLength == 127) {
+		uint8_t cnt = (header->payloadLength == 126 ? 2 : 8);
+		header->payloadLength = 0;
+		for(uint32_t i = 0; i < cnt; i++) {
+			header->payloadLength <<= 8;
+			header->payloadLength |= data[offset++];
+			if(offset >= dataCount) {
+				return false;
+			}
+		}
+	}
+	if(header->MASK) {
+		for(uint32_t i = 0; i < 4; i++) {
+			header->maskingKey[i] = data[offset++];
+			if(offset >= dataCount) {
+				return false;
+			}
+		}
+	}
+	header->headerSize = offset;
+	return true;
 }
+
+void HttpHostConnection::tryParseWsFrame() {
+	WsFrameHeader header;
+	uint8_t* wsFrame = this->webSocketFrame_.data();
+	if(this->parseWsFrameHeader(&header, wsFrame, this->webSocketFrame_.size())) {
+		if(this->webSocketFrame_.size() >= (header.payloadLength + header.headerSize)) {
+			if(header.MASK) {
+				for(uint32_t i = 0; i < header.payloadLength; i++) {
+					wsFrame[header.headerSize + i] ^= header.maskingKey[i % 4];
+				}
+			}
+			if(this->source_->listeners_.size()) {
+				for(uint32_t i = 0; i < this->source_->listeners_.size(); i++) {
+					if(header.opcode == 1) {//text data
+						this->source_->listeners_[i]->httpHost__wsText((WsEndPoint*) this, &wsFrame[header.headerSize], (uint32_t) header.payloadLength);
+					} else if(header.opcode == 2) {//binary data
+						this->source_->listeners_[i]->httpHost__wsData((WsEndPoint*) this, &wsFrame[header.headerSize], (uint32_t) header.payloadLength);
+					}
+				}
+			} else {
+				this->wsSend(header.opcode, &wsFrame[header.headerSize], (uint32_t) header.payloadLength);
+			}
+			this->webSocketFrame_.erase(this->webSocketFrame_.begin(), this->webSocketFrame_.begin() + (header.headerSize + header.payloadLength));
+		} else {
+			this->webSocketFrameToReceive_ = (header.payloadLength + header.headerSize) - this->webSocketFrame_.size();
+		}
+	}
+}
+
+int HttpHostConnection::handleWebSocket(uint8_t* data, uint32_t dataCount) {
+	while(this->webSocketFrameToReceive_ && dataCount) {
+		this->webSocketFrame_.push_back(*data++);
+		this->webSocketFrameToReceive_--;
+		dataCount--;
+	}
+	if(this->webSocketFrameToReceive_ == 0) {
+		if(this->webSocketFrame_.size()) {
+			this->tryParseWsFrame();
+		}
+		this->webSocketFrame_.clear();
+		while(dataCount) {
+			this->webSocketFrame_.push_back(*data++);
+			dataCount--;
+		}
+		this->tryParseWsFrame();
+	}
+	return HTTP_HOST_CONTINUE;
+}
+
+const char* HttpHostConnection::getUri() {
+	return this->uri_.c_str();
+}
+
+void HttpHostConnection::wsSend(uint8_t opCode, uint8_t* data, uint32_t dataSize) {
+	uint8_t header[dataSize <= 125 ? 2 : 4];
+	header[0] = 128 | opCode;
+	header[1] = dataSize <= 125 ? dataSize : 126;
+	if(dataSize >= 126) {
+		header[2] = (dataSize >> 8) & 255;
+		header[3] = dataSize & 255;
+	}
+	this->source_->transmit(this->descriptor_, (uint8_t*) header, dataSize <= 125 ? 2 : 4);
+	this->source_->transmit(this->descriptor_, (uint8_t*) data, dataSize);
+}
+
+void HttpHostConnection::sendBinaryData(uint8_t* data, uint32_t dataSize) {
+	this->wsSend(2, data, dataSize);
+}
+
+void HttpHostConnection::sendTextData(uint8_t* text, uint32_t textSize) {
+	this->wsSend(1, text, textSize);
+}
+
 
 } /* namespace network */
 } /* namespace kvpr */

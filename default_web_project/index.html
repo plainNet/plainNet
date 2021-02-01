@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlainNet</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="header-title">Welcome to plainNet HTTP server!</h1>
+        </header>
+        <main class="main">
+            <section class="websocket">
+                <div class="websocket-block websocket-binary">
+                    <h2 class="websocket-block-title">Send WebSocket binary data to server (bytes in DEC separated by ",")</h2>
+                    <div class="websocket-block-send">
+                        <input type="text" class="websocket-block-send-field" name="ws-bin" id="ws-bin" value="1,2,3,4,5">
+                        <button class="websocket-block-send-button" onclick="wsBinSend()">SEND</button>
+                    </div>
+                    <h2 class="websocket-block-title">WebSocket binary data received from server</h2>
+                    <textarea class="websocket-block-log" name="websocket-log" id="websocket-bin-log" cols="30" rows="10"></textarea>
+                </div>
+                <div class="websocket-block websocket-text">
+                    <h2 class="websocket-block-title">Send WebSocket text data to server</h2>
+                    <div class="websocket-block-send">
+                        <input type="text" class="websocket-block-send-field" name="ws-text" id="ws-text" value="hello world">
+                        <button class="websocket-block-send-button" onclick="wsTextSend()">SEND</button>
+                    </div>
+                    <h2 class="websocket-block-title">WebSocket text data received from server</h2>
+                    <textarea class="websocket-block-log" name="websocket-log" id="websocket-text-log" cols="30" rows="10"></textarea>
+                </div>
+                <div class="websocket-state">WebSocket state: disconnected</div>
+            </section>
+        </main>
+    </div>
+    <script src="ws.js/ws.js"></script>
+    <script src="js/script.js"></script>
+</body>
+
+</html>

@@ -28,12 +28,14 @@ namespace network {
 class HttpHost;
 class HttpHostListener;
 class HttpHostConnection;
+class WsEndPoint;
 
 typedef enum {
 	_GET_,
 	_HEAD_,
 	_UNSUPPORTED_,
 } HttpMethod;
+
 
 class HttpHostListener {
 
@@ -45,20 +47,39 @@ public:
 		return false;
 	}
 
-	virtual bool httpHost__wsAccept(const char* uri) {
+	virtual bool httpHost__wsAccept(WsEndPoint* endpoint) {
 		return false;
 	}
 
-	virtual bool httpHost__wsData(const char* uri, HttpHostEvent* request, HttpHostEvent* response) {
+	virtual bool httpHost__wsData(WsEndPoint* endpoint, uint8_t* data, uint32_t dataCount) {
 		return false;
 	}
 
-	virtual bool httpHost__wsText(const char* uri, HttpHostEvent* request, HttpHostEvent* response) {
+	virtual bool httpHost__wsText(WsEndPoint* endpoint, uint8_t* text, uint32_t textSize) {
 		return false;
 	}
 };
 
-class HttpHostConnection {
+typedef struct {
+	bool FIN;
+	bool RSV1;
+	bool RSV2;
+	bool RSV3;
+	uint8_t opcode;
+	bool MASK;
+	uint64_t payloadLength;
+	uint8_t maskingKey[4];
+	uint32_t headerSize;
+} WsFrameHeader;
+
+class WsEndPoint {
+public:
+	virtual const char* getUri() = 0;
+	virtual void sendBinaryData(uint8_t* data, uint32_t dataSize) = 0;
+	virtual void sendTextData(uint8_t* text, uint32_t textSize) = 0;
+};
+
+class HttpHostConnection : public WsEndPoint {
 
 private:
 	int descriptor_;
@@ -80,9 +101,12 @@ private:
 	std::vector<uint8_t> connection_;
 	std::vector<uint8_t> upgrade_;
 	std::vector<uint8_t> secWebsocketKey_;
+	std::vector<uint8_t> webSocketFrame_;
+	std::vector<uint8_t> webSocketPayload_;
+	uint32_t webSocketFrameToReceive_ = 0;
+	uint32_t webSocketPayloadToReceive_ = 0;
 	HttpHost* source_ = nullptr;
 	int handleHttp(uint8_t* data, uint32_t dataCount);
-	int handleWebSocket(uint8_t* data, uint32_t dataCount);
 	void resetInputBuffers();
 	HttpMethod parseHttpHeaders();
 	void parseUriAndVersion();
@@ -93,6 +117,11 @@ private:
 	void intoVector(std::vector<uint8_t>& dst, uint8_t* source, uint32_t start, uint32_t count);
 	void acceptWs();
 
+	int handleWebSocket(uint8_t* data, uint32_t dataCount);
+	bool parseWsFrameHeader(WsFrameHeader* header, uint8_t* data, uint32_t dataCount);
+	void tryParseWsFrame();
+	void wsSend(uint8_t opCode, uint8_t* data, uint32_t dataCount);
+
 public:
 	HttpHostConnection(int descriptor, HttpHost* source);
 	virtual ~HttpHostConnection();
@@ -100,6 +129,9 @@ public:
 	bool isWebSocket();
 	void setWebSocket(bool webSocket);
 	int handle(uint8_t* data, uint32_t dataCount);
+	virtual const char* getUri() override;
+	virtual void sendBinaryData(uint8_t* data, uint32_t dataSize) override;
+	virtual void sendTextData(uint8_t* text, uint32_t textSize) override;
 };
 
 class HttpHost : public TcpHost, TcpHostListener {
