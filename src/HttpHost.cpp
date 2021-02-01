@@ -7,6 +7,8 @@
 
 #include <HttpHost.h>
 #include <Platform.h>
+#include <mbedtls/base64.h>
+#include <mbedtls/sha1.h>
 #include <string.h>
 #include <string>
 #include <stdlib.h>
@@ -180,6 +182,28 @@ const uint8_t HttpHost::_CONTENT_LENGTH[] = {
 };
 
 /**
+ * WEB SOCKET GUID
+ */
+const char* HttpHost::WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+/**
+ * HTTP/1.1 101 Switching Protocols
+ * Upgrade: websocket
+ * Connection: Upgrade
+ * Sec-WebSocket-Accept:
+ */
+const uint8_t HttpHost::WS_ACCEPT[] = {
+	0x48, 0x54, 0x54, 0x50, 0x2F, 0x31, 0x2E, 0x31, 0x20, 0x31,
+	0x30, 0x31, 0x20, 0x53, 0x77, 0x69, 0x74, 0x63, 0x68, 0x69,
+	0x6E, 0x67, 0x20, 0x50, 0x72, 0x6F, 0x74, 0x6F, 0x63, 0x6F,
+	0x6C, 0x73, 0x0D, 0x0A, 0x55, 0x70, 0x67, 0x72, 0x61, 0x64,
+	0x65, 0x3A, 0x20, 0x77, 0x65, 0x62, 0x73, 0x6F, 0x63, 0x6B,
+	0x65, 0x74, 0x0D, 0x0A, 0x43, 0x6F, 0x6E, 0x6E, 0x65, 0x63,
+	0x74, 0x69, 0x6F, 0x6E, 0x3A, 0x20, 0x55, 0x70, 0x67, 0x72,
+	0x61, 0x64, 0x65, 0x0D, 0x0A, 0x53, 0x65, 0x63, 0x2D, 0x57,
+	0x65, 0x62, 0x53, 0x6F, 0x63, 0x6B, 0x65, 0x74, 0x2D, 0x41,
+	0x63, 0x63, 0x65, 0x70, 0x74, 0x3A, 0x20,
+};
+/**
  * -------------------------------------------------------------------------------------------------------------------------
  * -------------------------------------------------------------------------------------------------------------------------
  * -------------------------------------------------------------------------------------------------------------------------
@@ -233,7 +257,7 @@ void HttpHost::addListener(HttpHostListener* listener) {
  * -------------------------------------------------------------------------------------------------------------------------
  * -------------------------------------------------------------------------------------------------------------------------
  */
-HttpHostConnection::HttpHostConnection(int descriptor, HttpHost* source) {
+HttpHostConnection::HttpHostConnection(int descriptor, HttpHost* source) : WsEndPoint() {
 	this->descriptor_ = descriptor;
 	this->source_ = source;
 	this->headerBuf_ = (uint8_t*) malloc(HTTP_HOST_MAX_INPUT_HTTP_HEADER_SIZE);
@@ -254,6 +278,10 @@ HttpHostConnection::~HttpHostConnection() {
 	this->connection_.clear();
 	this->uri_.clear();
 	this->version_.clear();
+	this->upgrade_.clear();
+	this->secWebsocketKey_.clear();
+	this->webSocketFrame_.clear();
+	this->webSocketPayload_.clear();
 }
 
 int HttpHostConnection::getDescriptor() {
@@ -285,12 +313,20 @@ void HttpHostConnection::resetInputBuffers() {
 	this->headerBr_ = 0;
 }
 
+void HttpHostConnection::intoVector(std::vector<uint8_t>& dst, uint8_t* source, uint32_t start, uint32_t count) {
+	for(uint32_t i = start; i < count; i++) {
+		dst.push_back(source[i]);
+	}
+}
+
 HttpMethod HttpHostConnection::parseHttpHeaders() {
 	uint32_t offset = 0;
 	this->tmp_.clear();
 	this->method_.clear();
 	this->host_.clear();
 	this->connection_.clear();
+	this->upgrade_.clear();
+	this->secWebsocketKey_.clear();
 	HttpMethod methodType = HttpMethod::_UNSUPPORTED_;
 	while(offset < this->headerBw_) {
 		if(this->headerBuf_[offset] != 13 && this->headerBuf_[offset] != 10) {
@@ -310,21 +346,14 @@ HttpMethod HttpHostConnection::parseHttpHeaders() {
 						offset = this->headerBw_;
 					}
 				} else {
-					if(tmpArrSize >= 6 && !this->host_.size() && tmpArr[5] == 0x20 && tmpArr[0] == 'H' && tmpArr[1] == 'o' && tmpArr[2] == 's' && tmpArr[3] == 't' && tmpArr[4] == ':' ) {
+					if(tmpArrSize >= 6 && !this->host_.size() && memcmp(tmpArr, "Host: ", 6) == 0) {
 						this->host_.insert(this->host_.begin(), this->tmp_.begin() + 6, this->tmp_.end());
-					} else if(tmpArrSize >= 12 && !this->connection_.size() && tmpArr[11] == 0x20
-						&& tmpArr[0] == 'C'
-						&& tmpArr[1] == 'o'
-						&& tmpArr[2] == 'n'
-						&& tmpArr[3] == 'n'
-						&& tmpArr[4] == 'e'
-						&& tmpArr[5] == 'c'
-						&& tmpArr[6] == 't'
-						&& tmpArr[7] == 'i'
-						&& tmpArr[8] == 'o'
-						&& tmpArr[9] == 'n'
-						&& tmpArr[10] == ':') {
+					} else if(tmpArrSize >= 12 && !this->connection_.size()  && memcmp(tmpArr, "Connection: ", 12) == 0) {
 						this->connection_.insert(this->connection_.begin(), this->tmp_.begin() + 12, this->tmp_.end());
+					} else if(tmpArrSize >= 9 && !this->upgrade_.size()  && memcmp(tmpArr, "Upgrade: ", 9) == 0) {
+						this->upgrade_.insert(this->upgrade_.begin(), this->tmp_.begin() + 9, this->tmp_.end());
+					} else if(tmpArrSize >= 19 && !this->secWebsocketKey_.size()  && memcmp(tmpArr, "Sec-WebSocket-Key: : ", 19) == 0) {
+						this->secWebsocketKey_.insert(this->secWebsocketKey_.begin(), this->tmp_.begin() + 19, this->tmp_.end());
 					}
 				}
 			}
@@ -409,6 +438,31 @@ int HttpHostConnection::handleResponse(HttpHostEvent* response, HttpMethod reque
 	return HTTP_HOST_CLOSE_CONNECTION;
 }
 
+bool HttpHostConnection::checkForWebsocketSwitch() {
+	uint32_t cs_ = this->connection_.size();
+	uint32_t us_ = this->upgrade_.size();
+	if(cs_ == 7 && us_ == 9 && this->secWebsocketKey_.size()
+			&& memcmp(this->connection_.data(), "Upgrade", cs_) == 0
+			&& memcmp(this->upgrade_.data(), "websocket", us_) == 0) {
+		return true;
+	}
+	return false;
+}
+
+void HttpHostConnection::acceptWs() {
+	size_t olen;
+	memcpy((void*) this->source_->wsHandshake_, (void*) this->secWebsocketKey_.data(), this->secWebsocketKey_.size());
+	memcpy((void*) &this->source_->wsHandshake_[this->secWebsocketKey_.size()], (void*) HttpHost::WS_GUID, strlen(HttpHost::WS_GUID));
+	mbedtls_sha1(this->source_->wsHandshake_, this->secWebsocketKey_.size() + strlen(HttpHost::WS_GUID), this->source_->wsHandshakeSHA1_);
+	mbedtls_base64_encode(this->source_->wsHandshakeBase64_, 100, &olen, this->source_->wsHandshakeSHA1_, 20);
+	this->source_->wsHandshakeBase64_[olen++] = 13;
+	this->source_->wsHandshakeBase64_[olen++] = 10;
+	this->source_->wsHandshakeBase64_[olen++] = 13;
+	this->source_->wsHandshakeBase64_[olen++] = 10;
+	this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::WS_ACCEPT, sizeof(HttpHost::WS_ACCEPT));
+	this->source_->transmit(this->descriptor_, (uint8_t*) this->source_->wsHandshakeBase64_, olen);
+}
+
 int HttpHostConnection::handleHttp(uint8_t* data, uint32_t dataCount) {
 	if(headerIsWaiting_) {
 		//move input data bytes into internal buffer for header bytes
@@ -446,6 +500,25 @@ int HttpHostConnection::handleHttp(uint8_t* data, uint32_t dataCount) {
 			//unsupported HTTP version
 			return HTTP_HOST_CLOSE_CONNECTION;
 		}
+		//check for web socket connection switch request
+		if(methodType == HttpMethod::_GET_) {
+			if(this->checkForWebsocketSwitch()) {
+				if(this->source_->listeners_.size()) {
+					for(uint32_t i = 0; i < this->source_->listeners_.size(); i++) {
+						if(this->source_->listeners_[i]->httpHost__wsAccept((WsEndPoint*) this)) {
+							this->acceptWs();
+							return HTTP_HOST_CONTINUE;
+						}
+						this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::_HTTP_404, sizeof(HttpHost::_HTTP_404));
+						return HTTP_HOST_CLOSE_CONNECTION;
+					}
+				} else {
+					this->acceptWs();
+					this->webSocket_ = true;
+					return HTTP_HOST_CONTINUE;
+				}
+			}
+		}
 		//create response
 		HttpHostEvent response;
 #if PLAINNET_USE_DEFAULT_HTTP_RESOURCES == 1
@@ -473,9 +546,117 @@ int HttpHostConnection::handleHttp(uint8_t* data, uint32_t dataCount) {
 	return HTTP_HOST_CONTINUE;
 }
 
-int HttpHostConnection::handleWebSocket(uint8_t* data, uint32_t dataCount) {
-	return 0;
+bool HttpHostConnection::parseWsFrameHeader(WsFrameHeader* header, uint8_t* data, uint32_t dataCount) {
+	memset((void*) header, 0, sizeof(WsFrameHeader));
+	uint32_t offset = 0;
+	header->FIN = (data[offset] & 128) != 0;
+	header->RSV1 = (data[offset] & 64) != 0;
+	header->RSV2 = (data[offset] & 32) != 0;
+	header->RSV3 = (data[offset] & 16) != 0;
+	header->opcode = (data[offset++] & 15);
+	if(offset >= dataCount) {
+		return false;
+	}
+	header->MASK = (data[offset] & 128) != 0;
+	header->payloadLength = (data[offset++] & 127);
+	if(offset >= dataCount) {
+		return false;
+	}
+	if(header->payloadLength == 126 || header->payloadLength == 127) {
+		uint8_t cnt = (header->payloadLength == 126 ? 2 : 8);
+		header->payloadLength = 0;
+		for(uint32_t i = 0; i < cnt; i++) {
+			header->payloadLength <<= 8;
+			header->payloadLength |= data[offset++];
+			if(offset >= dataCount) {
+				return false;
+			}
+		}
+	}
+	if(header->MASK) {
+		for(uint32_t i = 0; i < 4; i++) {
+			header->maskingKey[i] = data[offset++];
+			if(offset >= dataCount) {
+				return false;
+			}
+		}
+	}
+	header->headerSize = offset;
+	return true;
 }
+
+void HttpHostConnection::tryParseWsFrame() {
+	WsFrameHeader header;
+	uint8_t* wsFrame = this->webSocketFrame_.data();
+	if(this->parseWsFrameHeader(&header, wsFrame, this->webSocketFrame_.size())) {
+		if(this->webSocketFrame_.size() >= (header.payloadLength + header.headerSize)) {
+			if(header.MASK) {
+				for(uint32_t i = 0; i < header.payloadLength; i++) {
+					wsFrame[header.headerSize + i] ^= header.maskingKey[i % 4];
+				}
+			}
+			if(this->source_->listeners_.size()) {
+				for(uint32_t i = 0; i < this->source_->listeners_.size(); i++) {
+					if(header.opcode == 1) {//text data
+						this->source_->listeners_[i]->httpHost__wsText((WsEndPoint*) this, &wsFrame[header.headerSize], (uint32_t) header.payloadLength);
+					} else if(header.opcode == 2) {//binary data
+						this->source_->listeners_[i]->httpHost__wsData((WsEndPoint*) this, &wsFrame[header.headerSize], (uint32_t) header.payloadLength);
+					}
+				}
+			} else {
+				this->wsSend(header.opcode, &wsFrame[header.headerSize], (uint32_t) header.payloadLength);
+			}
+			this->webSocketFrame_.erase(this->webSocketFrame_.begin(), this->webSocketFrame_.begin() + (header.headerSize + header.payloadLength));
+		} else {
+			this->webSocketFrameToReceive_ = (header.payloadLength + header.headerSize) - this->webSocketFrame_.size();
+		}
+	}
+}
+
+int HttpHostConnection::handleWebSocket(uint8_t* data, uint32_t dataCount) {
+	while(this->webSocketFrameToReceive_ && dataCount) {
+		this->webSocketFrame_.push_back(*data++);
+		this->webSocketFrameToReceive_--;
+		dataCount--;
+	}
+	if(this->webSocketFrameToReceive_ == 0) {
+		if(this->webSocketFrame_.size()) {
+			this->tryParseWsFrame();
+		}
+		this->webSocketFrame_.clear();
+		while(dataCount) {
+			this->webSocketFrame_.push_back(*data++);
+			dataCount--;
+		}
+		this->tryParseWsFrame();
+	}
+	return HTTP_HOST_CONTINUE;
+}
+
+const char* HttpHostConnection::getUri() {
+	return this->uri_.c_str();
+}
+
+void HttpHostConnection::wsSend(uint8_t opCode, uint8_t* data, uint32_t dataSize) {
+	uint8_t header[dataSize <= 125 ? 2 : 4];
+	header[0] = 128 | opCode;
+	header[1] = dataSize <= 125 ? dataSize : 126;
+	if(dataSize >= 126) {
+		header[2] = (dataSize >> 8) & 255;
+		header[3] = dataSize & 255;
+	}
+	this->source_->transmit(this->descriptor_, (uint8_t*) header, dataSize <= 125 ? 2 : 4);
+	this->source_->transmit(this->descriptor_, (uint8_t*) data, dataSize);
+}
+
+void HttpHostConnection::sendBinaryData(uint8_t* data, uint32_t dataSize) {
+	this->wsSend(2, data, dataSize);
+}
+
+void HttpHostConnection::sendTextData(uint8_t* text, uint32_t textSize) {
+	this->wsSend(1, text, textSize);
+}
+
 
 } /* namespace network */
 } /* namespace kvpr */

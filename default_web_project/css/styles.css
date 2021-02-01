@@ -1,0 +1,98 @@
+body {
+  margin: 0 auto;
+  background-color: #d1d1d1;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+.container {
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.header-title {
+  text-align: center;
+  border-bottom: 4px solid rgba(0, 0, 0, 0.4);
+}
+.main {
+  width: 100%;
+}
+.websocket {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.websocket-block {
+  margin: 0 0 20px 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.websocket-block:last-child {
+  margin: 0;
+}
+.websocket-block-title {
+  margin: 4px 0 4px 0;
+  font-weight: 500;
+  font-style: italic;
+}
+.websocket-block-send {
+  display: flex;
+}
+.websocket-block-send-field {
+  width: 100%;
+  margin: 0 8px 0 0;
+  text-align: center;
+  padding: 8px;
+  font-size: 18px;
+  outline: none;
+  border: none;
+  border-radius: 8px;
+  transition: 0.4s;
+  background-color: #eee;
+}
+.websocket-block-send-field:focus {
+  border: none;
+  background-color: white;
+  -webkit-box-shadow: 0px 0px 9px 5px rgba(0, 0, 0, 0.35);
+  -moz-box-shadow: 0px 0px 9px 5px rgba(0, 0, 0, 0.35);
+  box-shadow: 0px 0px 9px 5px rgba(0, 0, 0, 0.35);
+}
+.websocket-block-send-button {
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+  border: 1px solid grey;
+  padding: 0 20px;
+  transition: 0.4s;
+}
+.websocket-block-send-button:hover {
+  -webkit-box-shadow: 0px 0px 9px 5px rgba(0, 0, 0, 0.35);
+  -moz-box-shadow: 0px 0px 9px 5px rgba(0, 0, 0, 0.35);
+  box-shadow: 0px 0px 9px 5px rgba(0, 0, 0, 0.35);
+}
+.websocket-block-send-button:active {
+  background-color: orange;
+}
+.websocket-block-log {
+  outline: none;
+  border: none;
+  border-radius: 8px;
+  transition: 0.4s;
+  padding: 10px;
+  resize: none;
+  overflow: auto;
+  background-color: #eee;
+}
+.websocket-block-log:focus {
+  border: none;
+  background-color: white;
+  -webkit-box-shadow: 0px 0px 9px 5px rgba(0, 0, 0, 0.35);
+  -moz-box-shadow: 0px 0px 9px 5px rgba(0, 0, 0, 0.35);
+  box-shadow: 0px 0px 9px 5px rgba(0, 0, 0, 0.35);
+}
+.websocket-state {
+  font-size: 18px;
+  text-align: center;
+}
