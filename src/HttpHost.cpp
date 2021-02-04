@@ -451,6 +451,7 @@ bool HttpHostConnection::checkForWebsocketSwitch() {
 
 void HttpHostConnection::acceptWs() {
 	size_t olen;
+	this->webSocket_ = true;
 	memcpy((void*) this->source_->wsHandshake_, (void*) this->secWebsocketKey_.data(), this->secWebsocketKey_.size());
 	memcpy((void*) &this->source_->wsHandshake_[this->secWebsocketKey_.size()], (void*) HttpHost::WS_GUID, strlen(HttpHost::WS_GUID));
 	mbedtls_sha1(this->source_->wsHandshake_, this->secWebsocketKey_.size() + strlen(HttpHost::WS_GUID), this->source_->wsHandshakeSHA1_);
@@ -514,7 +515,6 @@ int HttpHostConnection::handleHttp(uint8_t* data, uint32_t dataCount) {
 					}
 				} else {
 					this->acceptWs();
-					this->webSocket_ = true;
 					return HTTP_HOST_CONTINUE;
 				}
 			}
