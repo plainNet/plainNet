@@ -12,7 +12,6 @@
 #include <HttpHostResources.h>
 #include <plainNet.h>
 #include <vector>
-#include <vector>
 #if PLAINNET_USE_DEFAULT_HTTP_RESOURCES == 1
 #include PLAINNET_DEFAULT_HTTP_RESOURCES_INCLUDE_FILE
 #endif
@@ -139,31 +138,31 @@ class HttpHost : public TcpHost, TcpHostListener {
 	friend class HttpHostConnection;
 
 private:
+	static const char* _HTTP_NOT_IMPLEMENTED_HEADER;
+	static const char* _HTTP_OK;
+	static const char* _HTTP_404;
+	static const char* _CONTENT_TYPE;
+	static const char* _CONTENT_TYPE_TEXT_HTML;
+	static const char* _CONTENT_TYPE_TEXT_CSS;
+	static const char* _CONTENT_TYPE_TEXT_JAVASCRIPT;
+	static const char* _CONTENT_TYPE_IMAGE_PNG;
+	static const char* _CONTENT_TYPE_IMAGE_JPEG;
+	static const char* _CONTENT_TYPE_IMAGE_SVG;
+	static const char* _CONTENT_TYPE_IMAGE_TIFF;
+	static const char* _CONTENT_TYPE_IMAGE_XICON;
+	static const char* _CONTENT_TYPE_APPLICATION_JSON;
+	static const char* _CONTENT_TYPE_APPLICATION_OCTET_STREAM;
+	static const char* _CONTENT_LENGTH;
+	static const char* _WS_GUID;
+	static const char* _WS_ACCEPT;
+	uint8_t wsHandshake_[64];
+	uint8_t wsHandshakeSHA1_[20];
+	uint8_t wsHandshakeBase64_[32];
 	std::vector<HttpHostConnection*> httpConnections_;
 	std::vector<HttpHostListener*> listeners_;
 #if PLAINNET_USE_DEFAULT_HTTP_RESOURCES == 1
 	HttpHostResources* defaultResources_ = plainnet_getDefaultHttpResources();
 #endif
-	static const uint8_t _HTTP_NOT_IMPLEMENTED_HEADER[];
-	static const uint8_t _HTTP_OK[];
-	static const uint8_t _HTTP_404[];
-	static const uint8_t _CONTENT_TYPE[];
-	static const uint8_t _CONTENT_TYPE_TEXT_HTML[];
-	static const uint8_t _CONTENT_TYPE_TEXT_CSS[];
-	static const uint8_t _CONTENT_TYPE_TEXT_JAVASCRIPT[];
-	static const uint8_t _CONTENT_TYPE_IMAGE_PNG[];
-	static const uint8_t _CONTENT_TYPE_IMAGE_JPEG[];
-	static const uint8_t _CONTENT_TYPE_IMAGE_SVG[];
-	static const uint8_t _CONTENT_TYPE_IMAGE_TIFF[];
-	static const uint8_t _CONTENT_TYPE_IMAGE_XICON[];
-	static const uint8_t _CONTENT_TYPE_APPLICATION_JSON[];
-	static const uint8_t _CONTENT_TYPE_APPLICATION_OCTET_STREAM[];
-	static const uint8_t _CONTENT_LENGTH[];
-	static const char* WS_GUID;
-	static const uint8_t WS_ACCEPT[];
-	uint8_t wsHandshake_[64];
-	uint8_t wsHandshakeSHA1_[20];
-	uint8_t wsHandshakeBase64_[32];
 
 protected:
 	virtual void tcpHost__clientConnected(int socket) override;
