@@ -1,7 +1,7 @@
 /*
  * plainNet.h
  *
- *  Created on: 28 ˇÌ‚. 2021 „.
+ *  Created on: 28 —è–Ω–≤. 2021 –≥.
  *      Author: kgn
  */
 
@@ -45,6 +45,7 @@ extern "C" {
 #if PLAINNET_USE_CMISIS_RTOS_PRIORITIES == 1
 #include <cmsis_os.h>
 #else
+#include <FreeRTOS.h>
 #include <task.h>
 #endif
 
@@ -55,7 +56,7 @@ extern "C" {
 typedef struct {
 	char* taskName = NULL;
 	uint32_t taskStackSize = 1024;
-	#ifdef PLAINNET_USE_CMISIS_RTOS_PRIORITIES
+	#if PLAINNET_USE_CMISIS_RTOS_PRIORITIES == 1
 	osPriority taskPriority = osPriority::osPriorityNormal;
 	#else
 	UBaseType_t taskPriority = 3;
@@ -65,7 +66,7 @@ typedef struct {
 typedef struct {
 	char* taskName;
 	uint32_t taskStackSize;
-	#ifdef PLAINNET_USE_CMISIS_RTOS_PRIORITIES
+	#if PLAINNET_USE_CMISIS_RTOS_PRIORITIES == 1
 	osPriority taskPriority;
 	#else
 	UBaseType_t taskPriority;
