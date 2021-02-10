@@ -1,7 +1,7 @@
 /*
  * HttpHost.cpp
  *
- *  Created on: 28 ÿíâ. 2021 ã.
+ *  Created on: 28 ï¿½ï¿½ï¿½. 2021 ï¿½.
  *      Author: kgn
  */
 
@@ -441,7 +441,7 @@ bool HttpHostConnection::parseWsFrameHeader(WsFrameHeader* header, uint8_t* data
 void HttpHostConnection::tryParseWsFrame() {
 	WsFrameHeader header;
 	uint8_t* wsFrame = this->webSocketFrame_.data();
-	if(this->parseWsFrameHeader(&header, wsFrame, this->webSocketFrame_.size())) {
+	while(wsFrame && this->parseWsFrameHeader(&header, wsFrame, this->webSocketFrame_.size())) {
 		if(this->webSocketFrame_.size() >= (header.payloadLength + header.headerSize)) {
 			if(header.MASK) {
 				for(uint32_t i = 0; i < header.payloadLength; i++) {
@@ -460,8 +460,10 @@ void HttpHostConnection::tryParseWsFrame() {
 				this->wsSend(header.opcode, &wsFrame[header.headerSize], (uint32_t) header.payloadLength);
 			}
 			this->webSocketFrame_.erase(this->webSocketFrame_.begin(), this->webSocketFrame_.begin() + (header.headerSize + header.payloadLength));
+			wsFrame = this->webSocketFrame_.size() ? this->webSocketFrame_.data() : nullptr;
 		} else {
 			this->webSocketFrameToReceive_ = (header.payloadLength + header.headerSize) - this->webSocketFrame_.size();
+			break;
 		}
 	}
 }
