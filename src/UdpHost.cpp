@@ -1,12 +1,11 @@
 /*
  * UdpHost.cpp
  *
- *  Created on: 27 ÿíâ. 2021 ã.
+ *  Created on: 27 ï¿½ï¿½ï¿½. 2021 ï¿½.
  *      Author: kgn
  */
 
 #include <UdpHost.h>
-#include <Platform.h>
 
 namespace kvpr {
 namespace network {
@@ -102,13 +101,18 @@ int UdpHost::poll_(struct pollfd* descriptor) {
 				return -1;
 			}
 		} else {
-			Platform::getInstance()->ledY2_toggle();
+			struct sockaddr_in* sin = (struct sockaddr_in *) &from_;
+			UdpRemoteAddr addr;
+			addr.ip[0] = (sin->sin_addr.s_addr) & 255;
+			addr.ip[1] = (sin->sin_addr.s_addr >> 8) & 255;
+			addr.ip[2] = (sin->sin_addr.s_addr >> 16) & 255;
+			addr.ip[3] = (sin->sin_addr.s_addr >> 24) & 255;
+			addr.port = htons(sin->sin_port);
 			for(uint32_t i = 0; i < this->listeners_.size(); i++) {
 				if(this->listeners_[i]) {
-					this->listeners_[i]->udpHost__clientDataReceived(&from_, this->rxBuf_, size);
+					this->listeners_[i]->udpHost__clientDataReceived(&addr, this->rxBuf_, size);
 				}
 			}
-			sendto(descriptor->fd, this->rxBuf_, size, 0, &from_, sizeof(from_));
 		}
 	}
 	return 0;
@@ -119,6 +123,21 @@ void UdpHost::addListener(UdpHostListener* l) {
 		return;
 	}
 	this->listeners_.push_back(l);
+}
+
+void UdpHost::tx(UdpRemoteAddr* to, uint8_t* data, uint32_t dataCount) {
+	if(!to) {
+		return;
+	}
+	struct sockaddr_in sin;
+	sin.sin_addr.s_addr = 0;
+	for(uint32_t i = 4; i > 0; i--) {
+		sin.sin_addr.s_addr <<= 8;
+		sin.sin_addr.s_addr |= to->ip[i - 1];
+	}
+	sin.sin_port = htons(to->port);
+	sin.sin_family = AF_INET;
+	sendto(this->descriptor_, data, dataCount, 0, (struct sockaddr*) &sin, sizeof(sockaddr_in));
 }
 
 } /* namespace network */
