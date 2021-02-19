@@ -1,7 +1,7 @@
 /*
  * HttpHost.h
  *
- *  Created on: 28 ÿíâ. 2021 ã.
+ *  Created on: 28 ï¿½ï¿½ï¿½. 2021 ï¿½.
  *      Author: kgn
  */
 
@@ -176,6 +176,8 @@ public:
 	HttpHost(uint16_t port);
 	virtual ~HttpHost();
 	void addListener(HttpHostListener* listener);
+	void wsSendBinary(WsEndPoint* endPoint, uint8_t* data, uint32_t dataCount);
+	void wsSendText(WsEndPoint* endPoint, uint8_t* data, uint32_t dataCount);
 };
 
 } /* namespace network */

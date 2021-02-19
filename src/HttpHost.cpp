@@ -105,6 +105,23 @@ void HttpHost::addListener(HttpHostListener* listener) {
 	this->listeners_.push_back(listener);
 }
 
+void HttpHost::wsSendBinary(WsEndPoint* endPoint, uint8_t* data, uint32_t dataCount) {
+	for(uint32_t i = 0; i < this->httpConnections_.size(); i++) {
+		if(endPoint == nullptr || ((WsEndPoint*) this->httpConnections_[i]) == endPoint) {
+			this->httpConnections_[i]->sendBinaryData(data, dataCount);
+		}
+	}
+}
+
+void HttpHost::wsSendText(WsEndPoint* endPoint, uint8_t* data, uint32_t dataCount) {
+	for(uint32_t i = 0; i < this->httpConnections_.size(); i++) {
+		if(endPoint == nullptr || ((WsEndPoint*) this->httpConnections_[i]) == endPoint) {
+			this->httpConnections_[i]->sendTextData(data, dataCount);
+		}
+	}
+}
+
+
 /**
  * -------------------------------------------------------------------------------------------------------------------------
  * -------------------------------------------------------------------------------------------------------------------------
@@ -493,6 +510,9 @@ const char* HttpHostConnection::getUri() {
 }
 
 void HttpHostConnection::wsSend(uint8_t opCode, uint8_t* data, uint32_t dataSize) {
+	if(!this->webSocket_) {
+		return;
+	}
 	uint8_t header[dataSize <= 125 ? 2 : 4];
 	header[0] = 128 | opCode;
 	header[1] = dataSize <= 125 ? dataSize : 126;
