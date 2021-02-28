@@ -1,7 +1,7 @@
 /*
  * EasyFreeRtos.cpp
  *
- *  Created on: 27 ˇÌ‚. 2021 „.
+ *  Created on: 27 —è–Ω–≤. 2021 –≥.
  *      Author: kgn
  */
 

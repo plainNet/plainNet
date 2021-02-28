@@ -1,7 +1,7 @@
 /*
  * UdpHost.h
  *
- *  Created on: 27 ÿíâ. 2021 ã.
+ *  Created on: 27 ï¿½ï¿½ï¿½. 2021 ï¿½.
  *      Author: kgn
  */
 
@@ -19,11 +19,16 @@ namespace network {
 class UdpHost;
 class UdpHostListener;
 
+typedef struct {
+	uint8_t ip[4];
+	uint16_t port;
+} UdpRemoteAddr;
+
 class UdpHostListener {
 
 public:
 
-	virtual void udpHost__clientDataReceived(struct sockaddr* from, uint8_t* data, uint32_t dataCount) {};
+	virtual void udpHost__clientDataReceived(UdpRemoteAddr* from, uint8_t* data, uint32_t dataCount) {};
 
 };
 
@@ -50,6 +55,7 @@ public:
 	virtual ~UdpHost();
 	int start(HostStartParams* params, bool singletoneThread);
 	void addListener(UdpHostListener* l);
+	void tx(UdpRemoteAddr* to, uint8_t* data, uint32_t dataCount);
 };
 
 } /* namespace network */

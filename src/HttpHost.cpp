@@ -1,7 +1,7 @@
 /*
  * HttpHost.cpp
  *
- *  Created on: 28 ÿíâ. 2021 ã.
+ *  Created on: 28 ï¿½ï¿½ï¿½. 2021 ï¿½.
  *      Author: kgn
  */
 
@@ -26,183 +26,36 @@ namespace network {
  */
 
 /**
- * HTTP/1.1 501 NOT IMPLEMENTED
- * Server: lwIP/plainNetHttpServer
- *
+ * HTTP main answers
  */
-const uint8_t HttpHost::_HTTP_NOT_IMPLEMENTED_HEADER[] = {
-	0x48, 0x54, 0x54, 0x50, 0x2F, 0x31, 0x2E, 0x31, 0x20, 0x35,
-	0x30, 0x31, 0x20, 0x4E, 0x4F, 0x54, 0x20, 0x49, 0x4D, 0x50,
-	0x4C, 0x45, 0x4D, 0x45, 0x4E, 0x54, 0x45, 0x44, 0x0D, 0x0A,
-	0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x3A, 0x20, 0x6C, 0x77,
-	0x49, 0x50, 0x2F, 0x70, 0x6C, 0x61, 0x69, 0x6E, 0x4E, 0x65,
-	0x74, 0x48, 0x74, 0x74, 0x70, 0x53, 0x65, 0x72, 0x76, 0x65,
-	0x72, 0x0D, 0x0A, 0x0D, 0x0A
-};
-
-/**
- * HTTP/1.1 200 OK
- * Server: lwIP/plainNetHttpServer
- * Cache-Control: no-cache
- */
-const uint8_t HttpHost::_HTTP_OK[] = {
-	0x48, 0x54, 0x54, 0x50, 0x2F, 0x31, 0x2E, 0x31, 0x20, 0x32,
-	0x30, 0x30, 0x20, 0x4F, 0x4B, 0x0D, 0x0A, 0x53, 0x65, 0x72,
-	0x76, 0x65, 0x72, 0x3A, 0x20, 0x6C, 0x77, 0x49, 0x50, 0x2F,
-	0x70, 0x6C, 0x61, 0x69, 0x6E, 0x4E, 0x65, 0x74, 0x48, 0x74,
-	0x74, 0x70, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x0D, 0x0A,
-	0x43, 0x61, 0x63, 0x68, 0x65, 0x2D, 0x43, 0x6F, 0x6E, 0x74,
-	0x72, 0x6F, 0x6C, 0x3A, 0x20, 0x6E, 0x6F, 0x2D, 0x63, 0x61,
-	0x63, 0x68, 0x65, 0x0D, 0x0A
-};
-
-/**
- * HTTP/1.1 404 NOT FOUND
- * Server: lwIP/plainNetHttpServer
- *
- */
-const uint8_t HttpHost::_HTTP_404[] = {
-	0x48, 0x54, 0x54, 0x50, 0x2F, 0x31, 0x2E, 0x31, 0x20, 0x34,
-	0x30, 0x34, 0x20, 0x4E, 0x4F, 0x54, 0x20, 0x46, 0x4F, 0x55,
-	0x4E, 0x44, 0x0D, 0x0A, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72,
-	0x3A, 0x20, 0x6C, 0x77, 0x49, 0x50, 0x2F, 0x70, 0x6C, 0x61,
-	0x69, 0x6E, 0x4E, 0x65, 0x74, 0x48, 0x74, 0x74, 0x70, 0x53,
-	0x65, 0x72, 0x76, 0x65, 0x72, 0x0D, 0x0A, 0x0D, 0x0A
-};
+const char* HttpHost::_HTTP_NOT_IMPLEMENTED_HEADER = "HTTP/1.1 501 NOT IMPLEMENTED\r\nServer: lwIP/plainNetHttpServer\r\n\r\n";
+const char* HttpHost::_HTTP_OK = "HTTP/1.1 200 OK\r\nServer: lwIP/plainNetHttpServer\r\nCache-Control: no-cache\r\n";
+const char* HttpHost::_HTTP_404 = "HTTP/1.1 404 NOT FOUND\r\nServer: lwIP/plainNetHttpServer\r\n\r\n";
 
 /**
  * Content-Type: ........
  */
 #define CONTENT_TYPE_OFFSET 14
-const uint8_t HttpHost::_CONTENT_TYPE[] = {
-	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
-	0x70, 0x65, 0x3A, 0x20
-};
+const char* HttpHost::_CONTENT_TYPE = "Content-Type: ";
+const char* HttpHost::_CONTENT_TYPE_TEXT_HTML 	= "Content-Type: text/html\r\n";
+const char* HttpHost::_CONTENT_TYPE_TEXT_CSS 	= "Content-Type: text/css\r\n";
+const char* HttpHost::_CONTENT_TYPE_TEXT_JAVASCRIPT = "Content-Type: text/javascript\r\n";
+const char* HttpHost::_CONTENT_TYPE_IMAGE_PNG = "Content-Type: image/png\r\n";
+const char* HttpHost::_CONTENT_TYPE_IMAGE_JPEG = "Content-Type: image/jpeg\r\n";
+const char* HttpHost::_CONTENT_TYPE_IMAGE_SVG = "Content-Type: image/svg+xml\r\n";
+const char* HttpHost::_CONTENT_TYPE_IMAGE_TIFF = "Content-Type: image/tiff\r\n";
+const char* HttpHost::_CONTENT_TYPE_IMAGE_XICON = "Content-Type: image/x-icon\r\n";
+const char* HttpHost::_CONTENT_TYPE_APPLICATION_JSON = "Content-Type: application/json\r\n";
+const char* HttpHost::_CONTENT_TYPE_APPLICATION_OCTET_STREAM = "Content-Type: application/octet-stream\r\n";
 
-/**
- * Content-Type: text/html
- */
-const uint8_t HttpHost::_CONTENT_TYPE_TEXT_HTML[] = {
-	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
-	0x70, 0x65, 0x3A, 0x20, 0x74, 0x65, 0x78, 0x74, 0x2F, 0x68,
-	0x74, 0x6D, 0x6C, 0x0D, 0x0A
-};
-
-/**
- * Content-Type: text/css
- */
-const uint8_t HttpHost::_CONTENT_TYPE_TEXT_CSS[] = {
-	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
-	0x70, 0x65, 0x3A, 0x20, 0x74, 0x65, 0x78, 0x74, 0x2F, 0x63,
-	0x73, 0x73, 0x0D, 0x0A
-};
-
-/**
- * Content-Type: text/javascript
- */
-const uint8_t HttpHost::_CONTENT_TYPE_TEXT_JAVASCRIPT[] = {
-	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
-	0x70, 0x65, 0x3A, 0x20, 0x74, 0x65, 0x78, 0x74, 0x2F, 0x6A,
-	0x61, 0x76, 0x61, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x0D,
-	0x0A
-};
-
-/**
- * Content-Type: image/png
- */
-const uint8_t HttpHost::_CONTENT_TYPE_IMAGE_PNG[] = {
-	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
-	0x70, 0x65, 0x3A, 0x20, 0x69, 0x6D, 0x61, 0x67, 0x65, 0x2F,
-	0x70, 0x6E, 0x67, 0x0D, 0x0A
-};
-
-/**
- * Content-Type: image/jpeg
- */
-const uint8_t HttpHost::_CONTENT_TYPE_IMAGE_JPEG[] = {
-	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
-	0x70, 0x65, 0x3A, 0x20, 0x69, 0x6D, 0x61, 0x67, 0x65, 0x2F,
-	0x6A, 0x70, 0x65, 0x67, 0x0D, 0x0A
-};
-
-/**
- * Content-Type: image/svg+xml
- */
-const uint8_t HttpHost::_CONTENT_TYPE_IMAGE_SVG[] = {
-	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
-	0x70, 0x65, 0x3A, 0x20, 0x69, 0x6D, 0x61, 0x67, 0x65, 0x2F,
-	0x73, 0x76, 0x67, 0x2B, 0x78, 0x6D, 0x6C, 0x0D, 0x0A,
-};
-
-/**
- * Content-Type: image/tiff
- */
-const uint8_t HttpHost::_CONTENT_TYPE_IMAGE_TIFF[] = {
-	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
-	0x70, 0x65, 0x3A, 0x20, 0x69, 0x6D, 0x61, 0x67, 0x65, 0x2F,
-	0x74, 0x69, 0x66, 0x66, 0x0D, 0x0A,
-};
-
-/**
- * Content-Type: image/x-icon
- */
-const uint8_t HttpHost::_CONTENT_TYPE_IMAGE_XICON[] = {
-	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
-	0x70, 0x65, 0x3A, 0x20, 0x69, 0x6D, 0x61, 0x67, 0x65, 0x2F,
-	0x78, 0x2D, 0x69, 0x63, 0x6F, 0x6E, 0x0D, 0x0A,
-};
-
-/**
- * Content-Type: application/json
- */
-const uint8_t HttpHost::_CONTENT_TYPE_APPLICATION_JSON[] = {
-	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
-	0x70, 0x65, 0x3A, 0x20, 0x61, 0x70, 0x70, 0x6C, 0x69, 0x63,
-	0x61, 0x74, 0x69, 0x6F, 0x6E, 0x2F, 0x6A, 0x73, 0x6F, 0x6E,
-	0x0D, 0x0A,
-};
-
-/**
- * Content-Type: application/octet-stream
- */
-const uint8_t HttpHost::_CONTENT_TYPE_APPLICATION_OCTET_STREAM[] = {
-	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x54, 0x79,
-	0x70, 0x65, 0x3A, 0x20, 0x61, 0x70, 0x70, 0x6C, 0x69, 0x63,
-	0x61, 0x74, 0x69, 0x6F, 0x6E, 0x2F, 0x6F, 0x63, 0x74, 0x65,
-	0x74, 0x2D, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6D, 0x0D, 0x0A,
-};
-
-/**
- * Content-Length:
- */
 #define CONTENT_LENGTH_OFFSET 16
-const uint8_t HttpHost::_CONTENT_LENGTH[] = {
-	0x43, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x4C, 0x65,
-	0x6E, 0x67, 0x74, 0x68, 0x3A, 0x20
-};
+const char* HttpHost::_CONTENT_LENGTH = "Content-Length: ";
 
 /**
- * WEB SOCKET GUID
+ * WS constants
  */
-const char* HttpHost::WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-/**
- * HTTP/1.1 101 Switching Protocols
- * Upgrade: websocket
- * Connection: Upgrade
- * Sec-WebSocket-Accept:
- */
-const uint8_t HttpHost::WS_ACCEPT[] = {
-	0x48, 0x54, 0x54, 0x50, 0x2F, 0x31, 0x2E, 0x31, 0x20, 0x31,
-	0x30, 0x31, 0x20, 0x53, 0x77, 0x69, 0x74, 0x63, 0x68, 0x69,
-	0x6E, 0x67, 0x20, 0x50, 0x72, 0x6F, 0x74, 0x6F, 0x63, 0x6F,
-	0x6C, 0x73, 0x0D, 0x0A, 0x55, 0x70, 0x67, 0x72, 0x61, 0x64,
-	0x65, 0x3A, 0x20, 0x77, 0x65, 0x62, 0x73, 0x6F, 0x63, 0x6B,
-	0x65, 0x74, 0x0D, 0x0A, 0x43, 0x6F, 0x6E, 0x6E, 0x65, 0x63,
-	0x74, 0x69, 0x6F, 0x6E, 0x3A, 0x20, 0x55, 0x70, 0x67, 0x72,
-	0x61, 0x64, 0x65, 0x0D, 0x0A, 0x53, 0x65, 0x63, 0x2D, 0x57,
-	0x65, 0x62, 0x53, 0x6F, 0x63, 0x6B, 0x65, 0x74, 0x2D, 0x41,
-	0x63, 0x63, 0x65, 0x70, 0x74, 0x3A, 0x20,
-};
+const char* HttpHost::_WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+const char* HttpHost::_WS_ACCEPT = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ";
 /**
  * -------------------------------------------------------------------------------------------------------------------------
  * -------------------------------------------------------------------------------------------------------------------------
@@ -252,6 +105,23 @@ void HttpHost::addListener(HttpHostListener* listener) {
 	this->listeners_.push_back(listener);
 }
 
+void HttpHost::wsSendBinary(WsEndPoint* endPoint, uint8_t* data, uint32_t dataCount) {
+	for(uint32_t i = 0; i < this->httpConnections_.size(); i++) {
+		if(endPoint == nullptr || ((WsEndPoint*) this->httpConnections_[i]) == endPoint) {
+			this->httpConnections_[i]->sendBinaryData(data, dataCount);
+		}
+	}
+}
+
+void HttpHost::wsSendText(WsEndPoint* endPoint, uint8_t* data, uint32_t dataCount) {
+	for(uint32_t i = 0; i < this->httpConnections_.size(); i++) {
+		if(endPoint == nullptr || ((WsEndPoint*) this->httpConnections_[i]) == endPoint) {
+			this->httpConnections_[i]->sendTextData(data, dataCount);
+		}
+	}
+}
+
+
 /**
  * -------------------------------------------------------------------------------------------------------------------------
  * -------------------------------------------------------------------------------------------------------------------------
@@ -261,6 +131,7 @@ HttpHostConnection::HttpHostConnection(int descriptor, HttpHost* source) : WsEnd
 	this->descriptor_ = descriptor;
 	this->source_ = source;
 	this->headerBuf_ = (uint8_t*) malloc(HTTP_HOST_MAX_INPUT_HTTP_HEADER_SIZE);
+	this->txSmphr_ = xSemaphoreCreateMutex();
 }
 
 HttpHostConnection::~HttpHostConnection() {
@@ -336,10 +207,10 @@ HttpMethod HttpHostConnection::parseHttpHeaders() {
 			if(tmpArrSize) {
 				uint8_t* tmpArr = this->tmp_.data();
 				if(!this->method_.size()) {
-					if(tmpArrSize >= 4  && tmpArr[3] == 0x20 && tmpArr[0] == 'G' && tmpArr[1] == 'E' && tmpArr[2] == 'T') {
+					if(tmpArrSize >= 4  && tmpArr[3] == 0x20 && memcmp(tmpArr, "GET", 3) == 0) {
 						this->method_.insert(this->method_.begin(), this->tmp_.begin() + 4, this->tmp_.end());
 						methodType = HttpMethod::_GET_;
-					} else if(tmpArrSize >= 5  && tmpArr[4] == 0x20 && tmpArr[0] == 'H' && tmpArr[1] == 'E' && tmpArr[2] == 'A' && tmpArr[3] == 'D') {
+					} else if(tmpArrSize >= 5  && tmpArr[4] == 0x20 && memcmp(tmpArr, "HEAD", 4) == 0) {
 						this->method_.insert(this->method_.begin(), this->tmp_.begin() + 5, this->tmp_.end());
 						methodType = HttpMethod::_HEAD_;
 					} else {
@@ -399,16 +270,16 @@ uint8_t* HttpHostConnection::getResponseTypeArray(HttpHostResponseType type) {
 
 uint32_t HttpHostConnection::getResponseTypeArraySize(HttpHostResponseType type) {
 	switch(type) {
-		case HttpHostResponseType::_html_: return sizeof(HttpHost::_CONTENT_TYPE_TEXT_HTML);
-		case HttpHostResponseType::_css_: return sizeof(HttpHost::_CONTENT_TYPE_TEXT_CSS);
-		case HttpHostResponseType::_javascript_: return sizeof(HttpHost::_CONTENT_TYPE_TEXT_JAVASCRIPT);
-		case HttpHostResponseType::_img_png_: return sizeof(HttpHost::_CONTENT_TYPE_IMAGE_PNG);
-		case HttpHostResponseType::_img_jpeg_: return sizeof(HttpHost::_CONTENT_TYPE_IMAGE_JPEG);
-		case HttpHostResponseType::_img_svg_: return sizeof(HttpHost::_CONTENT_TYPE_IMAGE_SVG);
-		case HttpHostResponseType::_img_tiff_: return sizeof(HttpHost::_CONTENT_TYPE_IMAGE_TIFF);
-		case HttpHostResponseType::_img_xicon_: return sizeof(HttpHost::_CONTENT_TYPE_IMAGE_XICON);
-		case HttpHostResponseType::_json_: return sizeof(HttpHost::_CONTENT_TYPE_APPLICATION_JSON);
-		default: return sizeof(HttpHost::_CONTENT_TYPE_APPLICATION_OCTET_STREAM);
+		case HttpHostResponseType::_html_: return strlen(HttpHost::_CONTENT_TYPE_TEXT_HTML);
+		case HttpHostResponseType::_css_: return strlen(HttpHost::_CONTENT_TYPE_TEXT_CSS);
+		case HttpHostResponseType::_javascript_: return strlen(HttpHost::_CONTENT_TYPE_TEXT_JAVASCRIPT);
+		case HttpHostResponseType::_img_png_: return strlen(HttpHost::_CONTENT_TYPE_IMAGE_PNG);
+		case HttpHostResponseType::_img_jpeg_: return strlen(HttpHost::_CONTENT_TYPE_IMAGE_JPEG);
+		case HttpHostResponseType::_img_svg_: return strlen(HttpHost::_CONTENT_TYPE_IMAGE_SVG);
+		case HttpHostResponseType::_img_tiff_: return strlen(HttpHost::_CONTENT_TYPE_IMAGE_TIFF);
+		case HttpHostResponseType::_img_xicon_: return strlen(HttpHost::_CONTENT_TYPE_IMAGE_XICON);
+		case HttpHostResponseType::_json_: return strlen(HttpHost::_CONTENT_TYPE_APPLICATION_JSON);
+		default: return strlen(HttpHost::_CONTENT_TYPE_APPLICATION_OCTET_STREAM);
 	}
 }
 
@@ -421,7 +292,7 @@ int HttpHostConnection::handleResponse(HttpHostEvent* response, HttpMethod reque
 		return HTTP_HOST_CONTINUE;
 	}
 	//send header first segment
-	this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::_HTTP_OK, sizeof(HttpHost::_HTTP_OK));
+	this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::_HTTP_OK, strlen(HttpHost::_HTTP_OK));
 	//send Response-Type
 	this->source_->transmit(this->descriptor_, responseTypeArray, responseTypeArraySize);
 	//create and send Content-Length
@@ -451,15 +322,16 @@ bool HttpHostConnection::checkForWebsocketSwitch() {
 
 void HttpHostConnection::acceptWs() {
 	size_t olen;
+	this->webSocket_ = true;
 	memcpy((void*) this->source_->wsHandshake_, (void*) this->secWebsocketKey_.data(), this->secWebsocketKey_.size());
-	memcpy((void*) &this->source_->wsHandshake_[this->secWebsocketKey_.size()], (void*) HttpHost::WS_GUID, strlen(HttpHost::WS_GUID));
-	mbedtls_sha1(this->source_->wsHandshake_, this->secWebsocketKey_.size() + strlen(HttpHost::WS_GUID), this->source_->wsHandshakeSHA1_);
+	memcpy((void*) &this->source_->wsHandshake_[this->secWebsocketKey_.size()], (void*) HttpHost::_WS_GUID, strlen(HttpHost::_WS_GUID));
+	mbedtls_sha1(this->source_->wsHandshake_, this->secWebsocketKey_.size() + strlen(HttpHost::_WS_GUID), this->source_->wsHandshakeSHA1_);
 	mbedtls_base64_encode(this->source_->wsHandshakeBase64_, 100, &olen, this->source_->wsHandshakeSHA1_, 20);
 	this->source_->wsHandshakeBase64_[olen++] = 13;
 	this->source_->wsHandshakeBase64_[olen++] = 10;
 	this->source_->wsHandshakeBase64_[olen++] = 13;
 	this->source_->wsHandshakeBase64_[olen++] = 10;
-	this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::WS_ACCEPT, sizeof(HttpHost::WS_ACCEPT));
+	this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::_WS_ACCEPT, strlen(HttpHost::_WS_ACCEPT));
 	this->source_->transmit(this->descriptor_, (uint8_t*) this->source_->wsHandshakeBase64_, olen);
 }
 
@@ -490,7 +362,7 @@ int HttpHostConnection::handleHttp(uint8_t* data, uint32_t dataCount) {
 		this->resetInputBuffers();
 		//in case of unsupported METHOD send HTTP/1.1 501 NOT IMPLEMENTED
 		if(methodType == HttpMethod::_UNSUPPORTED_) {
-			this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::_HTTP_NOT_IMPLEMENTED_HEADER, sizeof(HttpHost::_HTTP_NOT_IMPLEMENTED_HEADER));
+			this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::_HTTP_NOT_IMPLEMENTED_HEADER, strlen(HttpHost::_HTTP_NOT_IMPLEMENTED_HEADER));
 			return HTTP_HOST_CLOSE_CONNECTION;
 		}
 		//parse URI and HTTP version from header
@@ -509,12 +381,11 @@ int HttpHostConnection::handleHttp(uint8_t* data, uint32_t dataCount) {
 							this->acceptWs();
 							return HTTP_HOST_CONTINUE;
 						}
-						this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::_HTTP_404, sizeof(HttpHost::_HTTP_404));
+						this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::_HTTP_404, strlen(HttpHost::_HTTP_404));
 						return HTTP_HOST_CLOSE_CONNECTION;
 					}
 				} else {
 					this->acceptWs();
-					this->webSocket_ = true;
 					return HTTP_HOST_CONTINUE;
 				}
 			}
@@ -540,7 +411,7 @@ int HttpHostConnection::handleHttp(uint8_t* data, uint32_t dataCount) {
 			}
 		}
 		//there is a point of 404 response
-		this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::_HTTP_404, sizeof(HttpHost::_HTTP_404));
+		this->source_->transmit(this->descriptor_, (uint8_t*) HttpHost::_HTTP_404, strlen(HttpHost::_HTTP_404));
 		return HTTP_HOST_CLOSE_CONNECTION;
 	}
 	return HTTP_HOST_CONTINUE;
@@ -588,7 +459,7 @@ bool HttpHostConnection::parseWsFrameHeader(WsFrameHeader* header, uint8_t* data
 void HttpHostConnection::tryParseWsFrame() {
 	WsFrameHeader header;
 	uint8_t* wsFrame = this->webSocketFrame_.data();
-	if(this->parseWsFrameHeader(&header, wsFrame, this->webSocketFrame_.size())) {
+	while(wsFrame && this->parseWsFrameHeader(&header, wsFrame, this->webSocketFrame_.size())) {
 		if(this->webSocketFrame_.size() >= (header.payloadLength + header.headerSize)) {
 			if(header.MASK) {
 				for(uint32_t i = 0; i < header.payloadLength; i++) {
@@ -607,8 +478,10 @@ void HttpHostConnection::tryParseWsFrame() {
 				this->wsSend(header.opcode, &wsFrame[header.headerSize], (uint32_t) header.payloadLength);
 			}
 			this->webSocketFrame_.erase(this->webSocketFrame_.begin(), this->webSocketFrame_.begin() + (header.headerSize + header.payloadLength));
+			wsFrame = this->webSocketFrame_.size() ? this->webSocketFrame_.data() : nullptr;
 		} else {
 			this->webSocketFrameToReceive_ = (header.payloadLength + header.headerSize) - this->webSocketFrame_.size();
+			break;
 		}
 	}
 }
@@ -638,6 +511,10 @@ const char* HttpHostConnection::getUri() {
 }
 
 void HttpHostConnection::wsSend(uint8_t opCode, uint8_t* data, uint32_t dataSize) {
+	if(!this->webSocket_) {
+		return;
+	}
+	xSemaphoreTake(this->txSmphr_, portMAX_DELAY);
 	uint8_t header[dataSize <= 125 ? 2 : 4];
 	header[0] = 128 | opCode;
 	header[1] = dataSize <= 125 ? dataSize : 126;
@@ -647,6 +524,7 @@ void HttpHostConnection::wsSend(uint8_t opCode, uint8_t* data, uint32_t dataSize
 	}
 	this->source_->transmit(this->descriptor_, (uint8_t*) header, dataSize <= 125 ? 2 : 4);
 	this->source_->transmit(this->descriptor_, (uint8_t*) data, dataSize);
+	xSemaphoreGive(this->txSmphr_);
 }
 
 void HttpHostConnection::sendBinaryData(uint8_t* data, uint32_t dataSize) {

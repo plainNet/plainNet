@@ -1,7 +1,7 @@
 /*
  * plainNet.h
  *
- *  Created on: 28 ˇÌ‚. 2021 „.
+ *  Created on: 28 —è–Ω–≤. 2021 –≥.
  *      Author: kgn
  */
 
@@ -9,6 +9,10 @@
 #define PLAINNET_H_
 
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Base library errors
@@ -30,6 +34,10 @@
 #define PLAINNET_USE_CMISIS_RTOS_PRIORITIES					0
 #endif
 
+#ifndef PLAINNET_USE_INNER_MBED_TLS
+#define PLAINNET_USE_INNER_MBED_TLS							1
+#endif
+
 
 /**
  * Base library params
@@ -37,21 +45,34 @@
 #if PLAINNET_USE_CMISIS_RTOS_PRIORITIES == 1
 #include <cmsis_os.h>
 #else
+#include <FreeRTOS.h>
 #include <task.h>
 #endif
 
 /**
  * Base library types
  */
+#ifdef __cplusplus
 typedef struct {
-	char* taskName = nullptr;
+	char* taskName = NULL;
 	uint32_t taskStackSize = 1024;
-	#ifdef PLAINNET_USE_CMISIS_RTOS_PRIORITIES
+	#if PLAINNET_USE_CMISIS_RTOS_PRIORITIES == 1
 	osPriority taskPriority = osPriority::osPriorityNormal;
 	#else
 	UBaseType_t taskPriority = 3;
 	#endif/*USE_CMISIS_RTOS_PRIORITIES*/
 } HostStartParams;
+#else
+typedef struct {
+	char* taskName;
+	uint32_t taskStackSize;
+	#if PLAINNET_USE_CMISIS_RTOS_PRIORITIES == 1
+	osPriority taskPriority;
+	#else
+	UBaseType_t taskPriority;
+	#endif/*USE_CMISIS_RTOS_PRIORITIES*/
+} HostStartParams;
+#endif
 
 /**
  * UdpHost params
@@ -122,7 +143,11 @@ typedef struct {
 #if PLAINNET_USE_DEFAULT_HTTP_RESOURCES == 1
 #ifndef PLAINNET_DEFAULT_HTTP_RESOURCES_INCLUDE_FILE
 #define PLAINNET_DEFAULT_HTTP_RESOURCES_INCLUDE_FILE		<HttpHostDefaultResources.h>
-#endif/*MILLINET_DEFAULT_HTTP_RESOURCES_INCLUDE_FILE*/
-#endif/*MILLINET_USE_DEFAULT_HTTP_RESOURCES == 1*/
+#endif/*PLAINNET_DEFAULT_HTTP_RESOURCES_INCLUDE_FILE*/
+#endif/*PLAINNET_USE_DEFAULT_HTTP_RESOURCES == 1*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* PLAINNET_H_ */
