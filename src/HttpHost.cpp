@@ -131,6 +131,7 @@ HttpHostConnection::HttpHostConnection(int descriptor, HttpHost* source) : WsEnd
 	this->descriptor_ = descriptor;
 	this->source_ = source;
 	this->headerBuf_ = (uint8_t*) malloc(HTTP_HOST_MAX_INPUT_HTTP_HEADER_SIZE);
+	this->txSmphr_ = xSemaphoreCreateMutex();
 }
 
 HttpHostConnection::~HttpHostConnection() {
@@ -513,6 +514,7 @@ void HttpHostConnection::wsSend(uint8_t opCode, uint8_t* data, uint32_t dataSize
 	if(!this->webSocket_) {
 		return;
 	}
+	xSemaphoreTake(this->txSmphr_, portMAX_DELAY);
 	uint8_t header[dataSize <= 125 ? 2 : 4];
 	header[0] = 128 | opCode;
 	header[1] = dataSize <= 125 ? dataSize : 126;
@@ -522,6 +524,7 @@ void HttpHostConnection::wsSend(uint8_t opCode, uint8_t* data, uint32_t dataSize
 	}
 	this->source_->transmit(this->descriptor_, (uint8_t*) header, dataSize <= 125 ? 2 : 4);
 	this->source_->transmit(this->descriptor_, (uint8_t*) data, dataSize);
+	xSemaphoreGive(this->txSmphr_);
 }
 
 void HttpHostConnection::sendBinaryData(uint8_t* data, uint32_t dataSize) {

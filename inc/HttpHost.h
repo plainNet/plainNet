@@ -120,6 +120,7 @@ private:
 	bool parseWsFrameHeader(WsFrameHeader* header, uint8_t* data, uint32_t dataCount);
 	void tryParseWsFrame();
 	void wsSend(uint8_t opCode, uint8_t* data, uint32_t dataCount);
+	SemaphoreHandle_t txSmphr_;
 
 public:
 	HttpHostConnection(int descriptor, HttpHost* source);

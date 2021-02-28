@@ -14,6 +14,7 @@ TcpHost::TcpHost(uint16_t port) {
 	// TODO Auto-generated constructor stub
 	this->port_ = port;
 	this->rxBuf_ = (uint8_t*) malloc(TCP_HOST_RX_BUF_SIZE);
+	this->txSmphr_ = xSemaphoreCreateMutex();
 }
 
 TcpHost::~TcpHost() {
@@ -141,6 +142,7 @@ void TcpHost::addListener(TcpHostListener* l) {
 }
 
 bool TcpHost::transmit(int socket, uint8_t* data, uint32_t dataCount) {
+	//xSemaphoreTake(this->txSmphr_, portMAX_DELAY);
 	uint32_t toSend = dataCount > TCP_HOST_MAX_TX_SEGMENT_SIZE ? TCP_HOST_MAX_TX_SEGMENT_SIZE : dataCount;
 	uint32_t offset = 0;
 	while(dataCount) {
@@ -153,6 +155,7 @@ bool TcpHost::transmit(int socket, uint8_t* data, uint32_t dataCount) {
 		}
 		toSend = dataCount > TCP_HOST_MAX_TX_SEGMENT_SIZE ? TCP_HOST_MAX_TX_SEGMENT_SIZE : dataCount;
 	}
+	//xSemaphoreGive(this->txSmphr_);
 	return true;
 }
 

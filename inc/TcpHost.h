@@ -1,7 +1,7 @@
 /*
  * TcpHost.h
  *
- *  Created on: 27 ÿíâ. 2021 ã.
+ *  Created on: 27 ï¿½ï¿½ï¿½. 2021 ï¿½.
  *      Author: kgn
  */
 
@@ -9,6 +9,7 @@
 #define TCPHOST_H_
 
 #include "EasyFreeRtos.h"
+#include "semphr.h"
 #include <lwip/sockets.h>
 #include <plainNet.h>
 #include <vector>
@@ -41,6 +42,7 @@ private:
 	struct pollfd wrapSocket(int socket, uint16_t flags);
 	uint8_t* rxBuf_ = nullptr;
 	TcpHostListener* child_ = nullptr;
+	SemaphoreHandle_t txSmphr_;
 
 protected:
 	virtual void onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* params) override;
