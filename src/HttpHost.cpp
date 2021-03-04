@@ -6,7 +6,6 @@
  */
 
 #include <HttpHost.h>
-#include <Platform.h>
 #include <mbedtls/base64.h>
 #include <mbedtls/sha1.h>
 #include <string.h>
