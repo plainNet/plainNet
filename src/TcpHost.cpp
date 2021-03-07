@@ -21,11 +21,11 @@ TcpHost::~TcpHost() {
 	// TODO Auto-generated destructor stub
 }
 
-void TcpHost::onThreadStart(kvpr::freertos::FreeRtosUser* userInstance, void* params) {
+void TcpHost::freeRtosUser__onThreadStart(kvpr::freertos::FreeRtosUser* userInstance, void* params) {
 	this->descriptors_.push_back(this->wrapSocket(this->serverDescriptor_, POLLIN));
 }
 
-void TcpHost::onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* params) {
+void TcpHost::freeRtosUser__onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* params) {
 	int rc = poll(&this->descriptors_[0], this->descriptors_.size(), TCP_HOST_POLL_TIMEOUT_IN_SECONDS * 1000);
 	if(rc > 0) {
 		uint32_t size_ = this->descriptors_.size();

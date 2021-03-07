@@ -18,10 +18,10 @@ UdpHost::UdpHost(uint16_t port) {
 	this->rxBuf_ = (uint8_t*) malloc(UDP_HOST_RX_BUF_SIZE);
 }
 
-void UdpHost::onThreadStart(kvpr::freertos::FreeRtosUser* userInstance, void* params) {
+void UdpHost::freeRtosUser__onThreadStart(kvpr::freertos::FreeRtosUser* userInstance, void* params) {
 }
 
-void UdpHost::onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* params) {
+void UdpHost::freeRtosUser__onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* params) {
 	int rc = this->singletone_ ?
 		poll(&UdpHost::singletoneFD_[0], UdpHost::singletoneFD_.size(), UDP_HOST_POLL_TIMEOUT_IN_SECONDS * 1000)
 		: poll(&this->fd_, 1, UDP_HOST_POLL_TIMEOUT_IN_SECONDS * 1000);

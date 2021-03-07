@@ -47,8 +47,8 @@ private:
 	int poll_(struct pollfd* fd);
 
 protected:
-	virtual void onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* params) override;
-	virtual void onThreadStart(kvpr::freertos::FreeRtosUser* userInstance, void* params) override;
+	virtual void freeRtosUser__onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* params) override;
+	virtual void freeRtosUser__onThreadStart(kvpr::freertos::FreeRtosUser* userInstance, void* params) override;
 
 public:
 	UdpHost(uint16_t port);

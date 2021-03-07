@@ -45,8 +45,8 @@ private:
 	SemaphoreHandle_t txSmphr_;
 
 protected:
-	virtual void onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* params) override;
-	virtual void onThreadStart(kvpr::freertos::FreeRtosUser* userInstance, void* params) override;
+	virtual void freeRtosUser__onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* params) override;
+	virtual void freeRtosUser__onThreadStart(kvpr::freertos::FreeRtosUser* userInstance, void* params) override;
 	void setChild(TcpHostListener* child);
 
 public:
