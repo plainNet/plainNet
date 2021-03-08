@@ -18,6 +18,7 @@ namespace network {
 class PlainBootloaderUser {
 public:
 	virtual void plainBootloader_started() {};
+	virtual void plainBootloader_connectionCreated() {};
 	virtual void plainBootloader_burn(uint32_t address, uint8_t* data, uint32_t dataCount) {};
 	virtual void plainBootloader_exit() {};
 };
@@ -25,7 +26,7 @@ public:
 class PlainBootloader : public kvpr::freertos::FreeRtosUser, public kvpr::network::HttpHostListener, public kvpr::proto::IntelHexParserUser  {
 
 private:
-	static constexpr const char* WS_URI_ = "/ws";
+	static constexpr const char* WS_URI_ = "/plain-boot";
 	static constexpr const char* THREAD_NAME_ = "plain-boot";
 	static constexpr const uint32_t THREAD_STACK_SIZE = 2048;
 	static constexpr const uint16_t bytesCountInPortionPerRequest_ = 1024;

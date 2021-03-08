@@ -84,7 +84,11 @@ bool PlainBootloader::httpHost__get(const char* uri, kvpr::network::HttpHostEven
 }
 
 bool PlainBootloader::httpHost__wsAccept(kvpr::network::WsEndPoint* endpoint) {
-	return memcmp((void*) endpoint->getUri(), (void*) PlainBootloader::WS_URI_, strlen(PlainBootloader::WS_URI_)) == 0;
+	bool ok = memcmp((void*) endpoint->getUri(), (void*) PlainBootloader::WS_URI_, strlen(PlainBootloader::WS_URI_)) == 0;
+	if(ok && this->user_) {
+		this->user_->plainBootloader_connectionCreated();
+	}
+	return ok;
 }
 
 bool PlainBootloader::httpHost__wsData(kvpr::network::WsEndPoint* endpoint, uint8_t* data, uint32_t dataCount) {
