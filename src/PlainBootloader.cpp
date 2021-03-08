@@ -93,12 +93,12 @@ bool PlainBootloader::httpHost__wsAccept(kvpr::network::WsEndPoint* endpoint) {
 
 bool PlainBootloader::httpHost__wsData(kvpr::network::WsEndPoint* endpoint, uint8_t* data, uint32_t dataCount) {
 	xSemaphoreTake(this->mutex_, portMAX_DELAY);
-	if(dataCount < 7) {
-		xSemaphoreGive(this->mutex_);
-		return true;
-	}
 	uint8_t type = data[0];
 	if(type == 1) {
+		if(dataCount < 7) {
+			xSemaphoreGive(this->mutex_);
+			return true;
+		}
 		uint16_t size = data[1] | (static_cast<uint16_t>(data[2]) << 8);
 		if((dataCount >= (size + 7UL))) {
 			uint32_t offset = data[3]
@@ -113,6 +113,8 @@ bool PlainBootloader::httpHost__wsData(kvpr::network::WsEndPoint* endpoint, uint
 			requestOffset_ = offset + size;
 		}
 		this->requestPortion();
+	} else if(type == 2) {
+		this->user_->plainBootloader_exit();
 	}
 	xSemaphoreGive(this->mutex_);
 	return true;
@@ -149,7 +151,6 @@ void PlainBootloader::intelHexParser__eof() {
 		return;
 	}
 	this->user_->plainBootloader_exit();
-
 }
 
 } /* namespace network */
