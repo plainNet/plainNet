@@ -10,10 +10,12 @@
 namespace kvpr {
 namespace network {
 
-PlainBootloader::PlainBootloader(uint32_t minAddress, uint32_t maxAddress) {
+PlainBootloader::PlainBootloader(uint32_t minAddress, uint32_t maxAddress, uint32_t bytesCountInPortionPerRequest, uint32_t portionsPerRequest) {
 	// TODO Auto-generated constructor stub
 	this->minAddress_ = minAddress;
 	this->maxAddress_ = maxAddress;
+	this->bytesCountInPortionPerRequest_ = bytesCountInPortionPerRequest;
+	this->portionsPerRequest_ = portionsPerRequest;
 }
 
 PlainBootloader::~PlainBootloader() {
@@ -38,20 +40,21 @@ void PlainBootloader::launch() {
 	);
 }
 
-void PlainBootloader::requestPortion() {
-	if(this->finished_) {
+void PlainBootloader::requestPortion(uint32_t offset) {
+	if(this->finished_ || (user_ && !user_->plainBootloader_isRequestEnabled())) {
 		return;
 	}
 	uint8_t dataRequest[7];
 	dataRequest[0] = 1;
-	dataRequest[1] = this->requestOffset_ & 255;
-	dataRequest[2] = (this->requestOffset_ >> 8) & 255;
-	dataRequest[3] = (this->requestOffset_ >> 16) & 255;
-	dataRequest[4] = (this->requestOffset_ >> 24) & 255;
-	dataRequest[5] = PlainBootloader::bytesCountInPortionPerRequest_ & 255;
-	dataRequest[6] = (PlainBootloader::bytesCountInPortionPerRequest_ >> 8) & 255;
+	dataRequest[1] = offset & 255;
+	dataRequest[2] = (offset >> 8) & 255;
+	dataRequest[3] = (offset >> 16) & 255;
+	dataRequest[4] = (offset >> 24) & 255;
+	dataRequest[5] = this->bytesCountInPortionPerRequest_ & 255;
+	dataRequest[6] = (this->bytesCountInPortionPerRequest_ >> 8) & 255;
 	this->http_->wsSendBinary(nullptr, dataRequest, sizeof(dataRequest));
 	this->portionsRequestedPerInteval_++;
+	this->requestedOffset_ = offset;
 }
 
 void PlainBootloader::freeRtosUser__onThreadStart(FreeRtosUser* userInstance, void* params) {
@@ -74,7 +77,7 @@ void PlainBootloader::freeRtosUser__onThreadCall(FreeRtosUser* userInstance, voi
 	if(this->portionsRequestedPerInteval_) {
 		this->portionsRequestedPerInteval_ = 0;
 	} else {
-		this->requestPortion();
+		this->requestPortion(requestOffset_);
 	}
 	xSemaphoreGive(this->mutex_);
 }
@@ -112,7 +115,11 @@ bool PlainBootloader::httpHost__wsData(kvpr::network::WsEndPoint* endpoint, uint
 			this->intelHex->parse(&data[7], size);
 			requestOffset_ = offset + size;
 		}
-		this->requestPortion();
+		if(requestOffset_ > requestedOffset_) {
+			for(uint32_t i = 0; i < this->portionsPerRequest_; i++) {
+				this->requestPortion(requestOffset_ + (size * i));
+			}
+		}
 	} else if(type == 2) {
 		this->user_->plainBootloader_exit();
 	}
