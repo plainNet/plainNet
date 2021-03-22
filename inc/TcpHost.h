@@ -55,6 +55,7 @@ public:
 	int start(HostStartParams* params, bool singletoneThread);
 	void addListener(TcpHostListener* l);
 	bool transmit(int socket, uint8_t* data, uint32_t dataCount);
+	void transmit(uint8_t* data, uint32_t dataCount);
 	void finish(int socket);
 };
 
