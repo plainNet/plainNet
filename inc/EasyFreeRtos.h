@@ -1,7 +1,7 @@
 /*
  * EasyFreeRtos.h
  *
- *  Created on: 27 ÿíâ. 2021 ã.
+ *  Created on: 27 ï¿½ï¿½ï¿½. 2021 ï¿½.
  *      Author: kgn
  */
 
@@ -27,9 +27,9 @@ typedef struct {
 class FreeRtosUser {
 
 public:
-	virtual void onThreadCall(FreeRtosUser* userInstance, void* params) {};
+	virtual void freeRtosUser__onThreadCall(FreeRtosUser* userInstance, void* params) {};
 
-	virtual void onThreadStart(FreeRtosUser* userInstance, void* params) {};
+	virtual void freeRtosUser__onThreadStart(FreeRtosUser* userInstance, void* params) {};
 };
 
 class EasyFreeRtos {

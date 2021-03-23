@@ -21,11 +21,11 @@ TcpHost::~TcpHost() {
 	// TODO Auto-generated destructor stub
 }
 
-void TcpHost::onThreadStart(kvpr::freertos::FreeRtosUser* userInstance, void* params) {
+void TcpHost::freeRtosUser__onThreadStart(kvpr::freertos::FreeRtosUser* userInstance, void* params) {
 	this->descriptors_.push_back(this->wrapSocket(this->serverDescriptor_, POLLIN));
 }
 
-void TcpHost::onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* params) {
+void TcpHost::freeRtosUser__onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* params) {
 	int rc = poll(&this->descriptors_[0], this->descriptors_.size(), TCP_HOST_POLL_TIMEOUT_IN_SECONDS * 1000);
 	if(rc > 0) {
 		uint32_t size_ = this->descriptors_.size();
@@ -37,6 +37,9 @@ void TcpHost::onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* par
 				if((this->descriptors_[i].revents & POLLIN)) {
 					int inputConnectionSocket = accept(this->serverDescriptor_, NULL, NULL);
 					if(inputConnectionSocket >= 0) {
+						const struct timeval timeout = { 1, 0 };
+						setsockopt(inputConnectionSocket, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+						setsockopt(inputConnectionSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 						this->descriptors_.push_back(this->wrapSocket(inputConnectionSocket, POLLIN));
 						if(this->child_) {
 							this->child_->tcpHost__clientConnected(inputConnectionSocket);
@@ -53,7 +56,6 @@ void TcpHost::onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* par
 				if((this->descriptors_[i].revents & POLLIN)) {
 					ssize_t size = recv(this->descriptors_[i].fd, this->rxBuf_, TCP_HOST_RX_BUF_SIZE, MSG_WAITALL);
 					if(size < 0) {
-						close(this->descriptors_[i].fd);
 						descriptorForDelete = i;
 						if(this->child_) {
 							this->child_->tcpHost__clientDisconnected(this->descriptors_[i].fd);
@@ -78,11 +80,11 @@ void TcpHost::onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* par
 				}
 			}
 			this->descriptors_[i].revents = 0;
-			if(descriptorForDelete >= 0) {
+			if(descriptorForDelete > 0) {
 				break;
 			}
 		}
-		if(descriptorForDelete >= 0) {
+		if(descriptorForDelete > 0) {
 			close(this->descriptors_[descriptorForDelete].fd);
 			this->descriptors_.erase(this->descriptors_.begin() + descriptorForDelete);
 		}
@@ -151,12 +153,20 @@ bool TcpHost::transmit(int socket, uint8_t* data, uint32_t dataCount) {
 			offset += sended;
 			dataCount -= sended;
 		} else {
+			finish(socket);
 			return false;
 		}
 		toSend = dataCount > TCP_HOST_MAX_TX_SEGMENT_SIZE ? TCP_HOST_MAX_TX_SEGMENT_SIZE : dataCount;
 	}
 	//xSemaphoreGive(this->txSmphr_);
 	return true;
+}
+
+void TcpHost::transmit(uint8_t* data, uint32_t dataCount) {
+	uint32_t size_ = this->descriptors_.size();
+	for(uint32_t i = 1; i < size_; i++) {
+		this->transmit(this->descriptors_[i].fd, data, dataCount);
+	}
 }
 
 void TcpHost::finish(int socket) {

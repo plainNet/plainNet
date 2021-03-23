@@ -45,8 +45,8 @@ private:
 	SemaphoreHandle_t txSmphr_;
 
 protected:
-	virtual void onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* params) override;
-	virtual void onThreadStart(kvpr::freertos::FreeRtosUser* userInstance, void* params) override;
+	virtual void freeRtosUser__onThreadCall(kvpr::freertos::FreeRtosUser* userInstance, void* params) override;
+	virtual void freeRtosUser__onThreadStart(kvpr::freertos::FreeRtosUser* userInstance, void* params) override;
 	void setChild(TcpHostListener* child);
 
 public:
@@ -55,6 +55,7 @@ public:
 	int start(HostStartParams* params, bool singletoneThread);
 	void addListener(TcpHostListener* l);
 	bool transmit(int socket, uint8_t* data, uint32_t dataCount);
+	void transmit(uint8_t* data, uint32_t dataCount);
 	void finish(int socket);
 };
 

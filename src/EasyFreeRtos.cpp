@@ -25,9 +25,9 @@ EasyFreeRtos::~EasyFreeRtos() {
 
 void EasyFreeRtos::allThreadsCallback(void* argument) {
 	FreeRtosUserData* uData = (FreeRtosUserData*) argument;
-	uData->userPointer->onThreadStart(uData->userPointer, uData->userParams);
+	uData->userPointer->freeRtosUser__onThreadStart(uData->userPointer, uData->userParams);
 	for(;;) {
-		uData->userPointer->onThreadCall(uData->userPointer, uData->userParams);
+		uData->userPointer->freeRtosUser__onThreadCall(uData->userPointer, uData->userParams);
 	}
 }
 #if PLAINNET_USE_CMISIS_RTOS_PRIORITIES == 1
