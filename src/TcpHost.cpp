@@ -148,7 +148,7 @@ bool TcpHost::transmit(int socket, uint8_t* data, uint32_t dataCount) {
 	uint32_t toSend = dataCount > TCP_HOST_MAX_TX_SEGMENT_SIZE ? TCP_HOST_MAX_TX_SEGMENT_SIZE : dataCount;
 	uint32_t offset = 0;
 	while(dataCount) {
-		ssize_t sended = send(socket, &data[offset], toSend, 0);
+		ssize_t sended = send(socket, &data[offset], toSend, 1);
 		if(sended >= 0) {
 			offset += sended;
 			dataCount -= sended;
