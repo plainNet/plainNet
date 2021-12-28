@@ -137,7 +137,7 @@ void UdpHost::tx(UdpRemoteAddr* to, uint8_t* data, uint32_t dataCount) {
 	}
 	sin.sin_port = htons(to->port);
 	sin.sin_family = AF_INET;
-	sendto(this->descriptor_, data, dataCount, 0, (struct sockaddr*) &sin, sizeof(sockaddr_in));
+	sendto(this->descriptor_, data, dataCount, 1, (struct sockaddr*) &sin, sizeof(sockaddr_in));
 }
 
 } /* namespace network */
